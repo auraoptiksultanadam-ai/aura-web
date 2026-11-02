@@ -1,0 +1,19 @@
+# Build tools and binaries
+tailwind-cli.exe
+*.exe
+
+# Test screenshots
+render-*.png
+
+# Master backup (kept local only)
+code.html
+
+# Netlify
+.netlify/
+
+# Operating System files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
