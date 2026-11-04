@@ -30,7 +30,13 @@ Development workspace for Aura Optikal's website manager.
 
 ## Account onboarding
 
-Create/invite the user in Supabase Authentication first, then assign the resulting Auth user UUID to a branch from the Owner's Kelola Cabang screen. This manager intentionally does not hold a service-role key and cannot create Auth users administratively.
+- Owner enters the new branch name, desired Netlify hostname, and branch manager email in one form.
+- The provisioning function invites the email through Supabase Auth Admin API and creates the `branch_users` membership with role `branch_manager` for that branch.
+- The invitation redirects to `/manager/accept-invite.html`, where the invited manager sets their own password, then logs in at `/manager/`.
+- The server-side Netlify Function requires `SUPABASE_SERVICE_ROLE_KEY` as a Netlify Functions secret. Never expose this key in browser code or commit it to GitHub.
+- In Supabase Authentication URL Configuration, allowlist this exact invite redirect URL while testing: `https://aura-manager-dev--aura-optikal.netlify.app/manager/accept-invite.html`.
+- Configure Supabase SMTP / custom email delivery before sending real invitations. The built-in email service may have sending limits and may not deliver to arbitrary recipients.
+- If an email already has a Supabase Auth account, the invite flow may reject it; use the existing-account assignment flow in Kelola Cabang instead.
 
 ## Deployment
 
