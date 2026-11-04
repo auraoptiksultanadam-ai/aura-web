@@ -54,9 +54,9 @@ $("#check-netlify-name").addEventListener("click",async()=>{
 $("#branch-form").addEventListener("submit",async e=>{
  e.preventDefault();const f=e.currentTarget,id=f.elements.id.value,p={brand_name:f.elements.brand_name.value};
  if(id){["slug","city","primary_color","address","phone","whatsapp","logo_url"].forEach(k=>p[k]=f.elements[k].value);p.is_active=f.elements.is_active.checked;}
- else{p.netlify_name=f.elements.netlify_name.value.trim();if(checkedNetlifyName!==p.netlify_name){setMessage("#branch-message","Cek ketersediaan URL terlebih dahulu.");return;}}
+ else{p.netlify_name=f.elements.netlify_name.value.trim();p.manager_email=f.elements.manager_email.value.trim();if(!p.manager_email){setMessage("#branch-message","Email pengelola cabang wajib diisi.");return;}if(checkedNetlifyName!==p.netlify_name){setMessage("#branch-message","Cek ketersediaan URL terlebih dahulu.");return;}}
  const btn=f.querySelector("[type=submit]");btn.disabled=true;setMessage("#branch-message",id?"Menyimpan perubahan…":"Membuat cabang dan Netlify Site…");
- try{const d=await api("/.netlify/functions/manager-branches?type=branches"+(id?"&id="+encodeURIComponent(id):""),{method:id?"PATCH":"POST",body:JSON.stringify(p)});f.hidden=true;checkedNetlifyName="";await loadBranches();if(d.site)alert("Cabang berhasil dibuat. Website: "+d.site.url+". Deploy awal sedang diproses di Netlify.");}
+ try{const d=await api("/.netlify/functions/manager-branches?type=branches"+(id?"&id="+encodeURIComponent(id):""),{method:id?"PATCH":"POST",body:JSON.stringify(p)});f.hidden=true;checkedNetlifyName="";await loadBranches();if(d.site)alert("Cabang berhasil dibuat. Website: "+d.site.url+". Undangan login dikirim ke "+(d.manager?.email||p.manager_email)+". Deploy awal sedang diproses di Netlify.");}
  catch(err){setMessage("#branch-message",err.message);}
  finally{btn.disabled=false;}
 });
