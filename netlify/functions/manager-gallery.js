@@ -1,0 +1,13 @@
+const {SUPABASE_URL,context,response,assertSameOrigin,resolveBranch}=require("./lib/manager-auth");
+const base=()=>SUPABASE_URL+"/rest/v1/store_galleries";
+exports.handler=async event=>{let ctx;try{ctx=await context(event);const branchId=await resolveBranch(ctx,event.queryStringParameters?.branch_id);
+if(event.httpMethod==="GET"){const r=await fetch(base()+"?select=id,branch_id,title,description,image_url,category,sort_order,is_visible,created_at&branch_id=eq."+encodeURIComponent(branchId)+"&order=sort_order.asc,created_at.desc",{headers:ctx.headers});const rows=await r.json();if(!r.ok)throw Object.assign(new Error("Gagal memuat galeri."),{statusCode:502});return response(200,{gallery:rows,branch_id:branchId},ctx);}
+if(!["POST","PATCH","DELETE"].includes(event.httpMethod))return response(405,{error:"Metode tidak diizinkan."},ctx);assertSameOrigin(event);const id=event.queryStringParameters?.id;
+if(event.httpMethod==="DELETE"){if(!id)throw Object.assign(new Error("ID foto tidak ditemukan."),{statusCode:400});const r=await fetch(base()+"?id=eq."+encodeURIComponent(id)+"&branch_id=eq."+encodeURIComponent(branchId),{method:"DELETE",headers:{...ctx.headers,Prefer:"return=minimal"}});if(!r.ok)throw Object.assign(new Error("Gagal menghapus foto."),{statusCode:400});return response(200,{ok:true,message:"Foto galeri dihapus."},ctx);}
+let body;try{body=JSON.parse(event.body||"{}")}catch{throw Object.assign(new Error("Format data tidak valid."),{statusCode:400})}
+const data={branch_id:branchId};for(const k of ["title","description","image_url","category","sort_order","is_visible"])if(Object.hasOwn(body,k))data[k]=body[k];
+if(!String(data.image_url||"").trim())throw Object.assign(new Error("URL gambar wajib diisi."),{statusCode:400});try{const u=new URL(data.image_url);if(!["https:","http:"].includes(u.protocol))throw new Error();}catch{throw Object.assign(new Error("URL gambar tidak valid."),{statusCode:400})}
+data.image_url=String(data.image_url).trim();data.sort_order=Number(data.sort_order)||0;data.is_visible=data.is_visible!==false;
+const url=event.httpMethod==="PATCH"?(id?base()+"?id=eq."+encodeURIComponent(id)+"&branch_id=eq."+encodeURIComponent(branchId):null):base();if(!url)throw Object.assign(new Error("ID foto tidak ditemukan."),{statusCode:400});
+const r=await fetch(url,{method:event.httpMethod,headers:{...ctx.headers,Prefer:"return=representation"},body:JSON.stringify(data)});const result=await r.json();if(!r.ok)throw Object.assign(new Error(result.message||"Gagal menyimpan foto."),{statusCode:400});return response(200,{ok:true,item:result[0],message:"Foto galeri berhasil disimpan."},ctx);
+}catch(e){return response(e.statusCode||500,{error:e.message||"Terjadi kesalahan."},e.clearCookie?{clearCookie:true}:ctx)}};
