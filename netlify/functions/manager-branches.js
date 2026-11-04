@@ -25,6 +25,16 @@ async function checkName(name,ctx){
  const taken=Array.isArray(remote)&&remote.some(s=>String(s.name||"").toLowerCase()===name);
  return {available:!taken&&!local.length,hostname:name+".netlify.app",reason:taken?"Nama sudah dipakai di workspace Netlify Aura.":local.length?"Nama sudah terdaftar sebagai cabang Aura.":"" ,note:"Pemeriksaan awal mencakup workspace Aura. Netlify tetap memvalidasi ketersediaan global saat Site dibuat."};
 }
+async function inviteBranchManager(email,branchId,brandName,redirectTo){
+ const key=process.env.SUPABASE_SERVICE_ROLE_KEY;
+ if(!key)throw fail("Secret SUPABASE_SERVICE_ROLE_KEY belum dipasang pada Netlify branch deploy.",503);
+ const r=await fetch(SUPABASE_URL+"/auth/v1/invite",{method:"POST",headers:{apikey:key,Authorization:"Bearer "+key,"Content-Type":"application/json"},body:JSON.stringify({email,redirect_to:redirectTo,data:{role:"branch_manager",branch_id:branchId,brand_name:brandName}})});
+ const data=await r.json().catch(()=>({}));
+ if(!r.ok||!data.id)throw fail(data.msg||data.message||data.error_description||"Undangan gagal dikirim. Pastikan email belum terdaftar dan konfigurasi SMTP Supabase aktif.",400);
+ const link=await fetch(base()+"branch_users",{method:"POST",headers:{apikey:SUPABASE_ANON_KEY,Authorization:"Bearer "+key,"Content-Type":"application/json",Prefer:"return=representation"},body:JSON.stringify({user_id:data.id,branch_id:branchId,role:"branch_manager",is_active:true})});
+ if(!link.ok){await fetch(SUPABASE_URL+"/auth/v1/admin/users/"+encodeURIComponent(data.id),{method:"DELETE",headers:{apikey:key,Authorization:"Bearer "+key}}).catch(()=>{});throw fail("Undangan terkirim tetapi penautan akses cabang gagal. Cek kebijakan RLS branch_users.",500);}
+ return {id:data.id,email:data.email||email};
+}
 async function saveBranchAndDomain(ctx,name,brandName,site){
  let branchId=null;
  try{
@@ -112,7 +122,7 @@ exports.handler=async event=>{
     if(installationId)repo.installation_id=installationId;
     await netlify("/sites/"+encodeURIComponent(site.id),{method:"PUT",body:JSON.stringify({repo})});
     await netlify("/sites/"+encodeURIComponent(site.id)+"/metadata",{method:"PUT",body:JSON.stringify({aura_branch_id:branch.id,aura_branch_slug:name,managed_by:"AURA WEBSITE MANAGER"})});
-    return response(201,{ok:true,item:branch,site:{id:site.id,name:site.name,hostname:name+".netlify.app",url:site.ssl_url||site.url,admin_url:site.admin_url},message:"Cabang dan Netlify Site berhasil dibuat. Deploy awal sedang diproses."},ctx);
+    return response(201,{ok:true,item:branch,site:{id:site.id,name:site.name,hostname:name+".netlify.app",url:site.ssl_url||site.url,admin_url:site.admin_url},manager:{email:invited.email},message:"Cabang dan Netlify Site berhasil dibuat. Undangan pengelola telah dikirim ke "+invited.email+". Deploy awal sedang diproses."},ctx);
    }catch(error){
     if(createdBranchId){
      for(const table of ["operating_hours","branch_settings","branch_domains","branches"]){
