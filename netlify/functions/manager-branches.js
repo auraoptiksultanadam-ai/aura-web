@@ -39,9 +39,9 @@ exports.handler=async event=>{
  try{
   ctx=await context(event);
   if(ctx.member.role!=="owner")throw fail("Hanya Owner yang dapat mengelola cabang.",403);
-  if(!process.env.NETLIFY_AUTH_TOKEN)throw fail("Token Netlify belum tersedia pada deploy branch ini. Periksa environment variable NETLIFY_AUTH_TOKEN.",503);
   if(event.httpMethod==="GET"){
    if(event.queryStringParameters?.action==="check"){
+    if(!process.env.NETLIFY_AUTH_TOKEN)throw fail("Token Netlify belum tersedia pada deploy branch ini. Periksa environment variable NETLIFY_AUTH_TOKEN.",503);
     const name=cleanName(event.queryStringParameters.name);
     return response(200,await checkName(name,ctx),ctx);
    }
@@ -69,6 +69,7 @@ exports.handler=async event=>{
   }
   let body;try{body=JSON.parse(event.body||"{}")}catch{throw fail("Format data tidak valid.");}
   if(type==="branches"&&event.httpMethod==="POST"){
+   if(!process.env.NETLIFY_AUTH_TOKEN)throw fail("Token Netlify belum tersedia pada deploy branch ini. Periksa environment variable NETLIFY_AUTH_TOKEN.",503);
    const brandName=String(body.brand_name||"").trim();
    const name=cleanName(body.netlify_name||body.slug);
    if(!brandName)throw fail("Nama cabang wajib diisi.");
@@ -76,6 +77,7 @@ exports.handler=async event=>{
    const availability=await checkName(name,ctx);
    if(!availability.available)throw fail(availability.reason||"Nama Netlify tidak tersedia.");
    const site=await netlify("/sites",{method:"POST",body:JSON.stringify({name})});
+   let createdBranchId=null;
    try{
     const envUrl="/accounts/"+encodeURIComponent(site.account_id||site.account_slug)+"/env?site_id="+encodeURIComponent(site.id);
     const envs=[
@@ -85,11 +87,16 @@ exports.handler=async event=>{
     const envRes=await fetch(NETLIFY_API+envUrl,{method:"POST",headers:netlifyHeaders(),body:JSON.stringify(envs)});
     if(!envRes.ok){const msg=await envRes.text();throw fail("Site Netlify dibuat, tetapi konfigurasi koneksi Supabase gagal: "+msg.slice(0,220));}
     const branch=await saveBranchAndDomain(ctx,name,brandName,site);
+    createdBranchId=branch.id;
     const repo={provider:"github",repo:REPO,repo_path:REPO,repo_url:"https://github.com/"+REPO,repo_branch:DEPLOY_BRANCH,dir:".",functions_dir:"netlify/functions",public_repo:true,cmd:""};
     await netlify("/sites/"+encodeURIComponent(site.id),{method:"PUT",body:JSON.stringify({repo})});
     await netlify("/sites/"+encodeURIComponent(site.id)+"/metadata",{method:"PUT",body:JSON.stringify({aura_branch_id:branch.id,aura_branch_slug:name,managed_by:"AURA WEBSITE MANAGER"})});
     return response(201,{ok:true,item:branch,site:{id:site.id,name:site.name,hostname:name+".netlify.app",url:site.ssl_url||site.url,admin_url:site.admin_url},message:"Cabang dan Netlify Site berhasil dibuat. Deploy awal sedang diproses."},ctx);
    }catch(error){
+    if(createdBranchId){
+     try{await fetch(base()+"branch_domains?branch_id=eq."+encodeURIComponent(createdBranchId),{method:"DELETE",headers:ctx.headers});}catch{}
+     try{await fetch(base()+"branches?id=eq."+encodeURIComponent(createdBranchId),{method:"DELETE",headers:ctx.headers});}catch{}
+    }
     try{await netlify("/sites/"+encodeURIComponent(site.id),{method:"DELETE"});}catch{}
     throw error;
    }
