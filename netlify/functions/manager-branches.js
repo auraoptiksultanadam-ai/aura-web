@@ -28,11 +28,15 @@ async function checkName(name,ctx){
 async function saveBranchAndDomain(ctx,name,brandName,site){
  const branchRes=await fetch(base()+"branches",{method:"POST",headers:{...ctx.headers,Prefer:"return=representation"},body:JSON.stringify({slug:name,brand_name:brandName,primary_color:"#001734",is_active:true})});
  const branchRows=await branchRes.json();
- if(!branchRes.ok||!branchRows[0]?.id)throw fail(branchRows.message||"Site berhasil dibuat, tetapi data cabang gagal disimpan. Silakan hubungi Owner untuk pemulihan.");
- const branch=branchRows[0];
- const domainRes=await fetch(base()+"branch_domains",{method:"POST",headers:{...ctx.headers,Prefer:"return=representation"},body:JSON.stringify({branch_id:branch.id,hostname:name+".netlify.app",is_primary:true,is_active:true})});
- const domainRows=await domainRes.json();
- if(!domainRes.ok){await fetch(base()+"branches?id=eq."+encodeURIComponent(branch.id),{method:"DELETE",headers:ctx.headers});throw fail(domainRows.message||"Gagal menyimpan domain cabang.");}
+ if(!branchRes.ok||!branchRows[0]?.id)throw fail(branchRows.message||"Gagal menyimpan data cabang.");
+ const branch=branchRows[0],branchId=branch.id;
+ const domainRes=await fetch(base()+"branch_domains",{method:"POST",headers:{...ctx.headers,Prefer:"return=representation"},body:JSON.stringify({branch_id:branchId,hostname:name+".netlify.app",is_primary:true,is_active:true})});
+ if(!domainRes.ok)throw fail("Gagal menyimpan domain cabang.");
+ const settingsRes=await fetch(base()+"branch_settings",{method:"POST",headers:{...ctx.headers,Prefer:"return=minimal"},body:JSON.stringify({branch_id:branchId,hero_badge_text:"Selamat datang di "+brandName,hero_description:"Informasi toko sedang disiapkan oleh pengelola cabang.",meta_title:brandName+" | Website Resmi"})});
+ if(!settingsRes.ok)throw fail("Gagal menyiapkan profil awal cabang.");
+ const hours=Array.from({length:7},(_,day_of_week)=>({branch_id:branchId,day_of_week,open_time:"08:00",close_time:"22:00",is_closed:true,notes:"Atur jam operasional cabang"}));
+ const hoursRes=await fetch(base()+"operating_hours",{method:"POST",headers:{...ctx.headers,Prefer:"return=minimal"},body:JSON.stringify(hours)});
+ if(!hoursRes.ok)throw fail("Gagal menyiapkan jam operasional awal cabang.");
  return branch;
 }
 exports.handler=async event=>{
