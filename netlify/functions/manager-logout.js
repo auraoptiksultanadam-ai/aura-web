@@ -1,0 +1,1 @@
+exports.handler=async()=>({statusCode:200,headers:{"Content-Type":"application/json","Cache-Control":"no-store","Set-Cookie":"aura_manager_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0"},body:JSON.stringify({ok:true})});
