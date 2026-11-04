@@ -115,8 +115,9 @@ exports.handler=async event=>{
     return response(201,{ok:true,item:branch,site:{id:site.id,name:site.name,hostname:name+".netlify.app",url:site.ssl_url||site.url,admin_url:site.admin_url},message:"Cabang dan Netlify Site berhasil dibuat. Deploy awal sedang diproses."},ctx);
    }catch(error){
     if(createdBranchId){
-     try{await fetch(base()+"branch_domains?branch_id=eq."+encodeURIComponent(createdBranchId),{method:"DELETE",headers:ctx.headers});}catch{}
-     try{await fetch(base()+"branches?id=eq."+encodeURIComponent(createdBranchId),{method:"DELETE",headers:ctx.headers});}catch{}
+     for(const table of ["operating_hours","branch_settings","branch_domains","branches"]){
+      try{const key=table==="branches"?"id":"branch_id";await fetch(base()+table+"?"+key+"=eq."+encodeURIComponent(createdBranchId),{method:"DELETE",headers:ctx.headers});}catch{}
+     }
     }
     try{await netlify("/sites/"+encodeURIComponent(site.id),{method:"DELETE"});}catch{}
     throw error;
