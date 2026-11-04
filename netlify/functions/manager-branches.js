@@ -1,28 +1,107 @@
-const {SUPABASE_URL,context,response,assertSameOrigin}=require("./lib/manager-auth");
+const {SUPABASE_URL,SUPABASE_ANON_KEY,context,response,assertSameOrigin}=require("./lib/manager-auth");
+const NETLIFY_API="https://api.netlify.com/api/v1";
+const REPO="auraoptiksultanadam-ai/aura-web";
+const DEPLOY_BRANCH="aura-manager-dev";
 const base=()=>SUPABASE_URL+"/rest/v1/";
-exports.handler=async event=>{let ctx;try{ctx=await context(event);if(ctx.member.role!=="owner")throw Object.assign(new Error("Hanya Owner yang dapat mengelola cabang."),{statusCode:403});
-if(event.httpMethod==="GET"){
- const [br,dr,ur]=await Promise.all([
- fetch(base()+"branches?select=id,slug,brand_name,logo_url,primary_color,city,address,phone,whatsapp,is_active,created_at,updated_at&order=brand_name.asc",{headers:ctx.headers}),
- fetch(base()+"branch_domains?select=id,branch_id,hostname,is_primary,is_active,created_at&order=hostname.asc",{headers:ctx.headers}),
- fetch(base()+"branch_users?select=id,user_id,branch_id,role,is_active,created_at&order=created_at.desc",{headers:ctx.headers})
- ]);
- const [branches,domains,users]=await Promise.all([br.json(),dr.json(),ur.json()]);
- if(!br.ok||!dr.ok||!ur.ok)throw Object.assign(new Error("Gagal memuat data cabang."),{statusCode:502});
- return response(200,{branches,domains,users},ctx);
+const fail=(message,statusCode=400)=>Object.assign(new Error(message),{statusCode});
+const netlifyHeaders=()=>({Authorization:"Bearer "+process.env.NETLIFY_AUTH_TOKEN,"Content-Type":"application/json"});
+async function netlify(path,options={}){
+ const r=await fetch(NETLIFY_API+path,{...options,headers:{...netlifyHeaders(),...(options.headers||{})}});
+ const raw=await r.text();let data={};try{data=raw?JSON.parse(raw):{}}catch{}
+ if(!r.ok)throw fail(data.message||data.error||("Netlify API gagal ("+r.status+")."),r.status===401?503:400);
+ return data;
 }
-if(!["POST","PATCH","DELETE"].includes(event.httpMethod))return response(405,{error:"Metode tidak diizinkan."},ctx);assertSameOrigin(event);
-const type=event.queryStringParameters?.type,id=event.queryStringParameters?.id;
-const tables={branches:["slug","brand_name","logo_url","primary_color","city","address","phone","whatsapp","is_active"],domains:["branch_id","hostname","is_primary","is_active"],users:["user_id","branch_id","role","is_active"]};
-if(!tables[type])throw Object.assign(new Error("Jenis data tidak valid."),{statusCode:400});
-const table=type==="branches"?"branches":type==="domains"?"branch_domains":"branch_users";
-if(event.httpMethod==="DELETE"){if(!id)throw Object.assign(new Error("ID data tidak ditemukan."),{statusCode:400});if(type==="branches"){const count=await fetch(base()+"branches?select=id&id=eq."+encodeURIComponent(id),{headers:ctx.headers});const rows=await count.json();if(rows.length===1&&rows[0].id===id)throw Object.assign(new Error("Cabang tidak dihapus permanen dari panel ini. Nonaktifkan cabang untuk menjaga histori."),{statusCode:400});}
-const r=await fetch(base()+table+"?id=eq."+encodeURIComponent(id),{method:"DELETE",headers:{...ctx.headers,Prefer:"return=minimal"}});if(!r.ok)throw Object.assign(new Error("Gagal menghapus data."),{statusCode:400});return response(200,{ok:true,message:"Data berhasil dihapus."},ctx);}
-let body;try{body=JSON.parse(event.body||"{}")}catch{throw Object.assign(new Error("Format data tidak valid."),{statusCode:400})}
-const data={};for(const k of tables[type])if(Object.hasOwn(body,k))data[k]=body[k];
-if(type==="branches"){if(!data.slug||!data.brand_name)throw Object.assign(new Error("Slug dan nama cabang wajib diisi."),{statusCode:400});data.slug=String(data.slug).toLowerCase().trim().replace(/[^a-z0-9-]/g,"-");data.brand_name=String(data.brand_name).trim();data.updated_at=new Date().toISOString();}
-if(type==="domains"){if(!data.branch_id||!data.hostname)throw Object.assign(new Error("Cabang dan hostname wajib diisi."),{statusCode:400});data.hostname=String(data.hostname).toLowerCase().trim().replace(/^https?:\/\//,"").replace(/\/$/,"");}
-if(type==="users"){if(!data.user_id||!data.role||!["owner","branch_manager"].includes(data.role))throw Object.assign(new Error("User ID dan role yang valid wajib diisi."),{statusCode:400});if(data.role==="branch_manager"&&!data.branch_id)throw Object.assign(new Error("Pengelola harus ditautkan ke cabang."),{statusCode:400});}
-const url=event.httpMethod==="PATCH"?(id?base()+table+"?id=eq."+encodeURIComponent(id):null):base()+table;if(!url)throw Object.assign(new Error("ID data tidak ditemukan."),{statusCode:400});
-const r=await fetch(url,{method:event.httpMethod,headers:{...ctx.headers,Prefer:"return=representation"},body:JSON.stringify(data)});const result=await r.json();if(!r.ok)throw Object.assign(new Error(result.message||"Gagal menyimpan data."),{statusCode:400});return response(200,{ok:true,item:result[0],message:"Data cabang berhasil disimpan."},ctx);
-}catch(e){return response(e.statusCode||500,{error:e.message||"Terjadi kesalahan."},e.clearCookie?{clearCookie:true}:ctx)}};
+function cleanName(value){
+ const name=String(value||"").toLowerCase().trim().replace(/\.netlify\.app$/,"");
+ if(!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(name))throw fail("Gunakan nama URL 2–63 karakter: huruf kecil, angka, dan tanda hubung. Jangan sertakan https:// atau .netlify.app.");
+ return name;
+}
+async function checkName(name,ctx){
+ const [remote,local]=await Promise.all([
+  netlify("/sites?name="+encodeURIComponent(name)),
+  fetch(base()+"branches?select=id,slug,brand_name&slug=eq."+encodeURIComponent(name),{headers:ctx.headers}).then(r=>r.json())
+ ]);
+ const taken=Array.isArray(remote)&&remote.some(s=>String(s.name||"").toLowerCase()===name);
+ return {available:!taken&&!local.length,hostname:name+".netlify.app",reason:taken?"Nama sudah dipakai di akun Netlify.":local.length?"Nama sudah terdaftar sebagai cabang Aura.":""};
+}
+async function saveBranchAndDomain(ctx,name,brandName,site){
+ const branchRes=await fetch(base()+"branches",{method:"POST",headers:{...ctx.headers,Prefer:"return=representation"},body:JSON.stringify({slug:name,brand_name:brandName,primary_color:"#001734",is_active:true})});
+ const branchRows=await branchRes.json();
+ if(!branchRes.ok||!branchRows[0]?.id)throw fail(branchRows.message||"Site berhasil dibuat, tetapi data cabang gagal disimpan. Silakan hubungi Owner untuk pemulihan.");
+ const branch=branchRows[0];
+ const domainRes=await fetch(base()+"branch_domains",{method:"POST",headers:{...ctx.headers,Prefer:"return=representation"},body:JSON.stringify({branch_id:branch.id,hostname:name+".netlify.app",is_primary:true,is_active:true})});
+ const domainRows=await domainRes.json();
+ if(!domainRes.ok){await fetch(base()+"branches?id=eq."+encodeURIComponent(branch.id),{method:"DELETE",headers:ctx.headers});throw fail(domainRows.message||"Gagal menyimpan domain cabang.");}
+ return branch;
+}
+exports.handler=async event=>{
+ let ctx;
+ try{
+  ctx=await context(event);
+  if(ctx.member.role!=="owner")throw fail("Hanya Owner yang dapat mengelola cabang.",403);
+  if(!process.env.NETLIFY_AUTH_TOKEN)throw fail("Token Netlify belum tersedia pada deploy branch ini. Periksa environment variable NETLIFY_AUTH_TOKEN.",503);
+  if(event.httpMethod==="GET"){
+   if(event.queryStringParameters?.action==="check"){
+    const name=cleanName(event.queryStringParameters.name);
+    return response(200,await checkName(name,ctx),ctx);
+   }
+   const [br,dr,ur]=await Promise.all([
+    fetch(base()+"branches?select=id,slug,brand_name,logo_url,primary_color,city,address,phone,whatsapp,is_active,created_at,updated_at&order=brand_name.asc",{headers:ctx.headers}),
+    fetch(base()+"branch_domains?select=id,branch_id,hostname,is_primary,is_active,created_at&order=hostname.asc",{headers:ctx.headers}),
+    fetch(base()+"branch_users?select=id,user_id,branch_id,role,is_active,created_at&order=created_at.desc",{headers:ctx.headers})
+   ]);
+   const [branches,domains,users]=await Promise.all([br.json(),dr.json(),ur.json()]);
+   if(!br.ok||!dr.ok||!ur.ok)throw fail("Gagal memuat data cabang.",502);
+   return response(200,{branches,domains,users},ctx);
+  }
+  if(!["POST","PATCH","DELETE"].includes(event.httpMethod))return response(405,{error:"Metode tidak diizinkan."},ctx);
+  assertSameOrigin(event);
+  const type=event.queryStringParameters?.type,id=event.queryStringParameters?.id;
+  const tables={branches:["slug","brand_name","logo_url","primary_color","city","address","phone","whatsapp","is_active"],domains:["branch_id","hostname","is_primary","is_active"],users:["user_id","branch_id","role","is_active"]};
+  if(!tables[type])throw fail("Jenis data tidak valid.");
+  const table=type==="branches"?"branches":type==="domains"?"branch_domains":"branch_users";
+  if(event.httpMethod==="DELETE"){
+   if(!id)throw fail("ID data tidak ditemukan.");
+   if(type==="branches"){const count=await fetch(base()+"branches?select=id&id=eq."+encodeURIComponent(id),{headers:ctx.headers});const rows=await count.json();if(rows.length===1&&rows[0].id===id)throw fail("Cabang tidak dihapus permanen dari panel ini. Nonaktifkan cabang untuk menjaga histori.");}
+   const r=await fetch(base()+table+"?id=eq."+encodeURIComponent(id),{method:"DELETE",headers:{...ctx.headers,Prefer:"return=minimal"}});
+   if(!r.ok)throw fail("Gagal menghapus data.");
+   return response(200,{ok:true,message:"Data berhasil dihapus."},ctx);
+  }
+  let body;try{body=JSON.parse(event.body||"{}")}catch{throw fail("Format data tidak valid.");}
+  if(type==="branches"&&event.httpMethod==="POST"){
+   const brandName=String(body.brand_name||"").trim();
+   const name=cleanName(body.netlify_name||body.slug);
+   if(!brandName)throw fail("Nama cabang wajib diisi.");
+   if(brandName.length>120)throw fail("Nama cabang maksimal 120 karakter.");
+   const availability=await checkName(name,ctx);
+   if(!availability.available)throw fail(availability.reason||"Nama Netlify tidak tersedia.");
+   const site=await netlify("/sites",{method:"POST",body:JSON.stringify({name})});
+   try{
+    const envUrl="/accounts/"+encodeURIComponent(site.account_id||site.account_slug)+"/env?site_id="+encodeURIComponent(site.id);
+    const envs=[
+     {key:"SUPABASE_URL",values:[{value:SUPABASE_URL,context:"all"}],is_secret:true},
+     {key:"SUPABASE_ANON_KEY",values:[{value:SUPABASE_ANON_KEY,context:"all"}],is_secret:true}
+    ];
+    const envRes=await fetch(NETLIFY_API+envUrl,{method:"POST",headers:netlifyHeaders(),body:JSON.stringify(envs)});
+    if(!envRes.ok){const msg=await envRes.text();throw fail("Site Netlify dibuat, tetapi konfigurasi koneksi Supabase gagal: "+msg.slice(0,220));}
+    const branch=await saveBranchAndDomain(ctx,name,brandName,site);
+    const repo={provider:"github",repo:REPO,repo_path:REPO,repo_url:"https://github.com/"+REPO,repo_branch:DEPLOY_BRANCH,dir:".",functions_dir:"netlify/functions",public_repo:true,cmd:""};
+    await netlify("/sites/"+encodeURIComponent(site.id),{method:"PUT",body:JSON.stringify({repo})});
+    await netlify("/sites/"+encodeURIComponent(site.id)+"/metadata",{method:"PUT",body:JSON.stringify({aura_branch_id:branch.id,aura_branch_slug:name,managed_by:"AURA WEBSITE MANAGER"})});
+    return response(201,{ok:true,item:branch,site:{id:site.id,name:site.name,hostname:name+".netlify.app",url:site.ssl_url||site.url,admin_url:site.admin_url},message:"Cabang dan Netlify Site berhasil dibuat. Deploy awal sedang diproses."},ctx);
+   }catch(error){
+    try{await netlify("/sites/"+encodeURIComponent(site.id),{method:"DELETE"});}catch{}
+    throw error;
+   }
+  }
+  const data={};for(const k of tables[type])if(Object.hasOwn(body,k))data[k]=body[k];
+  if(type==="branches"){if(!data.slug||!data.brand_name)throw fail("Slug dan nama cabang wajib diisi.");data.slug=String(data.slug).toLowerCase().trim().replace(/[^a-z0-9-]/g,"-");data.brand_name=String(data.brand_name).trim();data.updated_at=new Date().toISOString();}
+  if(type==="domains"){if(!data.branch_id||!data.hostname)throw fail("Cabang dan hostname wajib diisi.");data.hostname=String(data.hostname).toLowerCase().trim().replace(/^https?:\/\//,"").replace(/\/$/,"");}
+  if(type==="users"){if(!data.user_id||!data.role||!["owner","branch_manager"].includes(data.role))throw fail("User ID dan role yang valid wajib diisi.");if(data.role==="branch_manager"&&!data.branch_id)throw fail("Pengelola harus ditautkan ke cabang.");}
+  const url=event.httpMethod==="PATCH"?(id?base()+table+"?id=eq."+encodeURIComponent(id):null):base()+table;
+  if(!url)throw fail("ID data tidak ditemukan.");
+  const r=await fetch(url,{method:event.httpMethod,headers:{...ctx.headers,Prefer:"return=representation"},body:JSON.stringify(data)});
+  const result=await r.json();if(!r.ok)throw fail(result.message||"Gagal menyimpan data.");
+  return response(200,{ok:true,item:result[0],message:"Data cabang berhasil disimpan."},ctx);
+ }catch(e){return response(e.statusCode||500,{error:e.message||"Terjadi kesalahan."},e.clearCookie?{clearCookie:true}:ctx);}
+};
