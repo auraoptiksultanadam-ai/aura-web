@@ -1,4 +1,5 @@
-const {SUPABASE_URL,SUPABASE_ANON_KEY,context,response,assertSameOrigin}=require("./lib/manager-auth");
+const {SUPABASE_URL,context,response,assertSameOrigin}=require("./lib/manager-auth");
+const SUPABASE_ANON_KEY=process.env.SUPABASE_ANON_KEY;
 const NETLIFY_API="https://api.netlify.com/api/v1";
 const REPO="auraoptiksultanadam-ai/aura-web";
 const DEPLOY_BRANCH="aura-manager-dev";
