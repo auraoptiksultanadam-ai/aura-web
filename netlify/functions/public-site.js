@@ -3,7 +3,7 @@ const json=(statusCode,body)=>({statusCode,headers:{"Content-Type":"application/
 exports.handler=async event=>{try{if(!URL||!KEY)return json(500,{error:"Public API belum dikonfigurasi."});
 const host=(event.headers.host||event.headers.Host||"").split(":")[0].toLowerCase();
 const h={apikey:KEY,Authorization:"Bearer "+KEY};
-const dr=await fetch(URL+"/rest/v1/branch_domains?select=branch_id&hostname=eq."+encodeURIComponent(host)+"&is_active=eq.true",{headers:h});const domains=await dr.json();if(!dr.ok||!domains.length)return json(404,{error:"Domain cabang tidak terdaftar."});
+const dr=await fetch(URL+"/rest/v1/branch_domains?select=branch_id&hostname=eq."+encodeURIComponent(host)+"&is_active=eq.true",{headers:h});let domains=await dr.json();if(!dr.ok)return json(502,{error:"Gagal membaca pemetaan domain."});if(!domains.length&&host.endsWith("--aura-optikal.netlify.app")){const fallback=await fetch(URL+"/rest/v1/branch_domains?select=branch_id&hostname=eq.aura-optikal.netlify.app&is_active=eq.true",{headers:h});domains=await fallback.json();}if(!domains.length)return json(404,{error:"Domain cabang tidak terdaftar."});
 const id=domains[0].branch_id;
 const [br,sr,hr,cr,pr,gr,por]=await Promise.all([
 fetch(URL+"/rest/v1/branches?select=id,slug,brand_name,logo_url,primary_color,city,address,phone,whatsapp&id=eq."+encodeURIComponent(id)+"&is_active=eq.true",{headers:h}),
