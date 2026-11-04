@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#001734"><title>Dashboard — AURA WEBSITE MANAGER</title><link rel="stylesheet" href="./assets/manager.css"></head>
+<body><main class="page"><section class="panel"><div class="mark" aria-hidden="true">A</div><p class="eyebrow">AURA WEBSITE MANAGER</p><h1 id="heading">Memuat dashboard…</h1><p class="intro" id="detail">Memeriksa sesi dan hak akses akun.</p><button id="logout" type="button">Keluar</button><p class="message" id="message" role="status"></p></section></main>
+<script>
+(async()=>{try{const r=await fetch("/.netlify/functions/manager-me");const d=await r.json();if(!r.ok)throw new Error(d.error||"Sesi tidak valid");document.querySelector("#heading").textContent=d.role==="owner"?"Dashboard Owner":"Dashboard Pengelola Cabang";document.querySelector("#detail").textContent=d.branch_name||"Akses seluruh cabang";}catch(e){location.replace("./index.html");}})();
+document.querySelector("#logout").addEventListener("click",async()=>{await fetch("/.netlify/functions/manager-logout",{method:"POST"});location.replace("./index.html");});
+</script></body></html>
