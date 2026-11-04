@@ -3,56 +3,61 @@
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#001734"><title>Dashboard — AURA WEBSITE MANAGER</title><link rel="stylesheet" href="./assets/manager.css"></head>
 <body class="manager-body">
 <div class="app-shell">
-  <aside class="sidebar">
-    <div class="side-brand"><div class="mark" aria-hidden="true">A</div><div><strong>AURA WEBSITE MANAGER</strong><small>CONTROL PANEL</small></div></div>
-    <div><p class="side-label">MENU UTAMA</p><nav class="side-nav" id="navigation">
-      <a class="nav-item active" href="#overview"><span class="nav-icon">⌂</span>Ringkasan</a>
-      <a class="nav-item owner-only" href="#branches"><span class="nav-icon">▦</span>Kelola Cabang</a>
-      <a class="nav-item" href="#profile"><span class="nav-icon">◉</span>Profil Toko</a>
-      <a class="nav-item" href="#products"><span class="nav-icon">◇</span>Produk & Kategori</a>
-      <a class="nav-item" href="#promotions"><span class="nav-icon">✳</span>Promosi</a>
-      <a class="nav-item" href="#gallery"><span class="nav-icon">▧</span>Galeri</a>
-      <a class="nav-item" href="#hours"><span class="nav-icon">◷</span>Jam Operasional</a>
-    </nav></div>
-    <div class="side-bottom"><button class="logout-btn" id="logout" type="button">Keluar dari Manager</button></div>
-  </aside>
-  <main class="main-area" id="overview">
-    <header class="topbar"><div class="crumb">Workspace / <strong>Ringkasan</strong></div><div class="user-chip"><span class="avatar" id="avatar">A</span><span id="identity">Memuat akun…</span></div></header>
-    <section class="welcome"><h1 id="heading">Selamat datang</h1><p id="subheading">Ringkasan pengelolaan website Aura Optikal.</p></section>
-    <section class="stat-grid">
-      <article class="stat-card"><small>Cabang aktif</small><strong id="branch-stat">—</strong></article>
-      <article class="stat-card"><small>Status website</small><strong style="font-size:17px">Siap dikelola</strong></article>
-      <article class="stat-card"><small>Akses akun</small><strong id="role-stat" style="font-size:17px">—</strong></article>
-    </section>
-    <section class="content-card" id="modules">
-      <div class="section-head"><h2>Pengelolaan Website</h2><span>Modul yang tersedia dalam workspace</span></div>
-      <div class="module-grid">
-        <article class="module-card" id="branches-card"><div class="module-icon">▦</div><div><h3>Kelola Cabang</h3><p>Daftar cabang, domain, dan akses pengelola.</p></div><span class="module-tag">OWNER</span></article>
-        <article class="module-card"><div class="module-icon">◉</div><div><h3>Profil Toko</h3><p>Nama toko, alamat, kontak, tautan sosial, dan informasi utama.</p></div><span class="module-tag">KONTEN</span></article>
-        <article class="module-card"><div class="module-icon">◇</div><div><h3>Produk & Kategori</h3><p>Kelola katalog produk yang ditampilkan pada website.</p></div><span class="module-tag">KONTEN</span></article>
-        <article class="module-card"><div class="module-icon">✳</div><div><h3>Promosi</h3><p>Atur materi promosi dan periode penayangannya.</p></div><span class="module-tag">KONTEN</span></article>
-        <article class="module-card"><div class="module-icon">▧</div><div><h3>Galeri</h3><p>Kelola foto toko dan gambar pendukung website.</p></div><span class="module-tag">MEDIA</span></article>
-        <article class="module-card"><div class="module-icon">◷</div><div><h3>Jam Operasional</h3><p>Atur jam buka dan informasi operasional cabang.</p></div><span class="module-tag">KONTEN</span></article>
-      </div>
-    </section>
-    <p class="message" id="status" role="status" style="margin-top:14px"></p>
-  </main>
+ <aside class="sidebar">
+  <div class="side-brand"><div class="mark" aria-hidden="true">A</div><div><strong>AURA WEBSITE MANAGER</strong><small>CONTROL PANEL</small></div></div>
+  <div><p class="side-label">MENU UTAMA</p><nav class="side-nav" id="navigation">
+   <a class="nav-item active" href="#overview" data-view="overview"><span class="nav-icon">⌂</span>Ringkasan</a>
+   <a class="nav-item owner-only" href="#branches" data-view="branches"><span class="nav-icon">▦</span>Kelola Cabang</a>
+   <a class="nav-item" href="#profile" data-view="profile"><span class="nav-icon">◉</span>Profil Toko</a>
+   <a class="nav-item" href="#products" data-view="products"><span class="nav-icon">◇</span>Produk & Kategori</a>
+   <a class="nav-item" href="#promotions" data-view="promotions"><span class="nav-icon">✳</span>Promosi</a>
+   <a class="nav-item" href="#gallery" data-view="gallery"><span class="nav-icon">▧</span>Galeri</a>
+   <a class="nav-item" href="#hours" data-view="hours"><span class="nav-icon">◷</span>Jam Operasional</a>
+  </nav></div>
+  <div class="side-bottom"><button class="logout-btn" id="logout" type="button">Keluar dari Manager</button></div>
+ </aside>
+ <main class="main-area">
+  <header class="topbar"><div class="crumb">Workspace / <strong id="crumb-title">Ringkasan</strong></div><div class="user-chip"><span class="avatar" id="avatar">A</span><span id="identity">Memuat akun…</span></div></header>
+  <section class="view active" id="view-overview">
+   <section class="welcome"><h1 id="heading">Selamat datang</h1><p id="subheading">Ringkasan pengelolaan website Aura Optikal.</p></section>
+   <section class="stat-grid"><article class="stat-card"><small>Cabang aktif</small><strong id="branch-stat">—</strong></article><article class="stat-card"><small>Status website</small><strong style="font-size:17px">Siap dikelola</strong></article><article class="stat-card"><small>Akses akun</small><strong id="role-stat" style="font-size:17px">—</strong></article></section>
+   <section class="content-card"><div class="section-head"><h2>Pengelolaan Website</h2><span>Modul yang tersedia dalam workspace</span></div><div class="module-grid">
+    <button class="module-card" data-open="branches" id="branches-card"><span class="module-icon">▦</span><span class="module-copy"><b>Kelola Cabang</b><small>Daftar cabang, domain, dan akses pengelola.</small></span><span class="module-tag">OWNER</span></button>
+    <button class="module-card" data-open="profile"><span class="module-icon">◉</span><span class="module-copy"><b>Profil Toko</b><small>Nama toko, alamat, kontak, tautan sosial, dan informasi utama.</small></span><span class="module-tag">KONTEN</span></button>
+    <button class="module-card" data-open="products"><span class="module-icon">◇</span><span class="module-copy"><b>Produk & Kategori</b><small>Kelola katalog produk yang ditampilkan pada website.</small></span><span class="module-tag">KONTEN</span></button>
+    <button class="module-card" data-open="promotions"><span class="module-icon">✳</span><span class="module-copy"><b>Promosi</b><small>Atur materi promosi dan periode penayangannya.</small></span><span class="module-tag">KONTEN</span></button>
+    <button class="module-card" data-open="gallery"><span class="module-icon">▧</span><span class="module-copy"><b>Galeri</b><small>Kelola foto toko dan gambar pendukung website.</small></span><span class="module-tag">MEDIA</span></button>
+    <button class="module-card" data-open="hours"><span class="module-icon">◷</span><span class="module-copy"><b>Jam Operasional</b><small>Atur jam buka dan informasi operasional cabang.</small></span><span class="module-tag">KONTEN</span></button>
+   </div></section>
+  </section>
+  <section class="view" id="view-profile">
+   <div class="page-heading"><div><h1>Profil Toko</h1><p>Informasi utama yang tampil pada website cabang.</p></div><label class="branch-picker owner-only" id="branch-picker-wrap">Cabang<select id="branch-picker"></select></label></div>
+   <form class="content-card editor-form" id="profile-form">
+    <h2>Identitas Toko</h2><div class="form-grid">
+     <label>Nama toko<input name="brand_name" required maxlength="120"></label><label>Kota<input name="city" maxlength="100"></label>
+     <label class="span-2">Alamat<input name="address" maxlength="300"></label><label>Nomor telepon<input name="phone" maxlength="40"></label><label>WhatsApp (format internasional)<input name="whatsapp" maxlength="20" placeholder="628xxxxxxxxxx"></label>
+     <label>Warna utama<input name="primary_color" type="color" value="#001734"></label><label>URL logo<input name="logo_url" type="url" placeholder="https://…"></label>
+    </div>
+    <h2>Informasi Website</h2><div class="form-grid">
+     <label class="span-2">Teks badge hero<input name="hero_badge_text" maxlength="160"></label>
+     <label class="span-2">Deskripsi hero<textarea name="hero_description" rows="3" maxlength="500"></textarea></label>
+     <label>Instagram<input name="instagram_url" type="url"></label><label>TikTok<input name="tiktok_url" type="url"></label>
+     <label>Google Maps<input name="gmaps_url" type="url"></label><label>Katalog Softlens<input name="softlens_catalog_url" type="url"></label>
+     <label>Link Rewards<input name="rewards_url" type="url"></label><label>Meta title<input name="meta_title" maxlength="160"></label>
+     <label class="span-2">Meta description<textarea name="meta_description" rows="2" maxlength="300"></textarea></label>
+    </div><div class="form-actions"><span class="form-message" id="profile-message" role="status"></span><button type="submit" class="primary-btn">Simpan Profil Toko</button></div>
+   </form>
+  </section>
+  <section class="view" id="view-hours">
+   <div class="page-heading"><div><h1>Jam Operasional</h1><p>Atur jam buka dan tutup untuk setiap hari.</p></div><label class="branch-picker owner-only" id="hours-branch-wrap">Cabang<select id="hours-branch-picker"></select></label></div>
+   <form class="content-card editor-form" id="hours-form"><div class="hours-list" id="hours-list"></div><div class="form-actions"><span class="form-message" id="hours-message" role="status"></span><button type="submit" class="primary-btn">Simpan Jam Operasional</button></div></form>
+  </section>
+  <section class="view" id="view-branches"><div class="content-card placeholder"><h1>Kelola Cabang</h1><p>Modul pengelolaan cabang akan diaktifkan pada tahap berikutnya.</p></div></section>
+  <section class="view" id="view-products"><div class="content-card placeholder"><h1>Produk & Kategori</h1><p>Modul produk dan kategori akan diaktifkan pada tahap berikutnya.</p></div></section>
+  <section class="view" id="view-promotions"><div class="content-card placeholder"><h1>Promosi</h1><p>Modul promosi akan diaktifkan pada tahap berikutnya.</p></div></section>
+  <section class="view" id="view-gallery"><div class="content-card placeholder"><h1>Galeri</h1><p>Modul galeri akan diaktifkan pada tahap berikutnya.</p></div></section>
+  <p class="message" id="status" role="status"></p>
+ </main>
 </div>
-<script>
-(async()=>{
- const heading=document.querySelector("#heading"),sub=document.querySelector("#subheading"),identity=document.querySelector("#identity"),avatar=document.querySelector("#avatar"),roleStat=document.querySelector("#role-stat"),branchStat=document.querySelector("#branch-stat");
- try{
-  const r=await fetch("/.netlify/functions/manager-me",{headers:{"Accept":"application/json"}});
-  const d=await r.json();if(!r.ok)throw new Error(d.error||"Sesi tidak valid");
-  const owner=d.role==="owner";
-  heading.textContent=owner?"Dashboard Owner":"Dashboard Pengelola Cabang";
-  sub.textContent=owner?"Kelola seluruh cabang dan konten website Aura Optikal.":"Kelola konten website cabang "+(d.branch_name||"Anda")+".";
-  identity.textContent=owner?"Owner":(d.branch_name||"Pengelola Cabang");
-  avatar.textContent=owner?"O":"C";roleStat.textContent=owner?"Seluruh cabang":"Cabang sendiri";
-  branchStat.textContent=owner?"Semua cabang":(d.branch_name||"1 cabang");
-  if(!owner){document.querySelectorAll(".owner-only,#branches-card").forEach(el=>el.remove());}
- }catch(e){location.replace("./index.html");}
-})();
-document.querySelector("#logout").addEventListener("click",async()=>{try{await fetch("/.netlify/functions/manager-logout",{method:"POST"});}finally{location.replace("./index.html");}});
-</script>
+<script src="./assets/dashboard.js" defer></script>
 </body></html>
