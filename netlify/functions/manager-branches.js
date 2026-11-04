@@ -43,7 +43,7 @@ async function saveBranchAndDomain(ctx,name,brandName,site){
  }catch(error){
   if(branchId){
    for(const table of ["operating_hours","branch_settings","branch_domains","branches"]){
-    try{await fetch(base()+table+"?branch_id=eq."+encodeURIComponent(branchId),{method:"DELETE",headers:ctx.headers});}catch{}
+    try{const key=table==="branches"?"id":"branch_id";await fetch(base()+table+"?"+key+"=eq."+encodeURIComponent(branchId),{method:"DELETE",headers:ctx.headers});}catch{}
    }
   }
   throw error;
