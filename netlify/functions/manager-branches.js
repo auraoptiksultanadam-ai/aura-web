@@ -121,14 +121,14 @@ exports.handler=async event=>{
     if(!envRes.ok){const msg=await envRes.text();throw fail("Site Netlify dibuat, tetapi konfigurasi koneksi Supabase gagal: "+msg.slice(0,220));}
     const branch=await saveBranchAndDomain(ctx,name,brandName,site);
     createdBranchId=branch.id;
-    const origin=event.headers.origin||event.headers.Origin;
-    const invited=await inviteBranchManager(managerEmail,branch.id,brandName,origin+"/manager/accept-invite.html");
-    invitedUserId=invited.id;
     const repo={provider:"github",repo:REPO,repo_path:REPO,repo_url:"https://github.com/"+REPO,repo_branch:DEPLOY_BRANCH,dir:".",functions_dir:"netlify/functions",public_repo:true,cmd:""};
     const installationId=anchorSite.build_settings?.installation_id||anchorSite.repo?.installation_id;
     if(installationId)repo.installation_id=installationId;
     await netlify("/sites/"+encodeURIComponent(site.id),{method:"PUT",body:JSON.stringify({repo})});
     await netlify("/sites/"+encodeURIComponent(site.id)+"/metadata",{method:"PUT",body:JSON.stringify({aura_branch_id:branch.id,aura_branch_slug:name,managed_by:"AURA WEBSITE MANAGER"})});
+    const origin=event.headers.origin||event.headers.Origin;
+    const invited=await inviteBranchManager(managerEmail,branch.id,brandName,origin+"/manager/accept-invite.html");
+    invitedUserId=invited.id;
     return response(201,{ok:true,item:branch,site:{id:site.id,name:site.name,hostname:name+".netlify.app",url:site.ssl_url||site.url,admin_url:site.admin_url},manager:{email:invited.email},message:"Cabang dan Netlify Site berhasil dibuat. Undangan pengelola telah dikirim ke "+invited.email+". Deploy awal sedang diproses."},ctx);
    }catch(error){
     if(invitedUserId&&process.env.SUPABASE_SERVICE_ROLE_KEY){try{const key=process.env.SUPABASE_SERVICE_ROLE_KEY;await fetch(SUPABASE_URL+"/auth/v1/admin/users/"+encodeURIComponent(invitedUserId),{method:"DELETE",headers:{apikey:key,Authorization:"Bearer "+key}});}catch{}}
