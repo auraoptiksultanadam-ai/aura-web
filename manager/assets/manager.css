@@ -26,3 +26,9 @@ body.manager-body{background:#f4f7fb}.app-shell{min-height:100vh;display:grid;gr
 
 /* Owner branch administration */
 #view-branches>.content-card{min-width:0}.check-line{display:flex!important;align-items:center;gap:8px}.check-line input{width:auto!important;height:auto!important;accent-color:var(--navy)}.inline-editor .form-actions>div{display:flex;gap:7px}
+
+.input-suffix{display:flex;align-items:center;border:1px solid var(--line,#d8e0e9);border-radius:10px;overflow:hidden;background:#fff}
+.input-suffix input{min-width:0;flex:1;border:0!important;border-radius:0!important}
+.input-suffix span{padding:0 12px;color:#66758a;font-size:13px;white-space:nowrap;background:#f3f6fa;align-self:stretch;display:flex;align-items:center}
+.branch-create-only[hidden],.branch-edit-only[hidden]{display:none!important}
+#netlify-name-message{margin:8px 0 0}
