@@ -14,7 +14,7 @@ async function netlify(path,options={}){
 }
 function cleanName(value){
  const name=String(value||"").toLowerCase().trim().replace(/\.netlify\.app$/,"");
- if(!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(name))throw fail("Gunakan nama URL 2–63 karakter: huruf kecil, angka, dan tanda hubung. Jangan sertakan https:// atau .netlify.app.");
+ if(!/^[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/.test(name))throw fail("Gunakan nama URL 2–63 karakter: huruf kecil, angka, dan tanda hubung. Jangan sertakan https:// atau .netlify.app.");
  return name;
 }
 async function checkName(name,ctx){
@@ -23,7 +23,7 @@ async function checkName(name,ctx){
   fetch(base()+"branches?select=id,slug,brand_name&slug=eq."+encodeURIComponent(name),{headers:ctx.headers}).then(r=>r.json())
  ]);
  const taken=Array.isArray(remote)&&remote.some(s=>String(s.name||"").toLowerCase()===name);
- return {available:!taken&&!local.length,hostname:name+".netlify.app",reason:taken?"Nama sudah dipakai di akun Netlify.":local.length?"Nama sudah terdaftar sebagai cabang Aura.":""};
+ return {available:!taken&&!local.length,hostname:name+".netlify.app",reason:taken?"Nama sudah dipakai di workspace Netlify Aura.":local.length?"Nama sudah terdaftar sebagai cabang Aura.":"" ,note:"Pemeriksaan awal mencakup workspace Aura. Netlify tetap memvalidasi ketersediaan global saat Site dibuat."};
 }
 async function saveBranchAndDomain(ctx,name,brandName,site){
  const branchRes=await fetch(base()+"branches",{method:"POST",headers:{...ctx.headers,Prefer:"return=representation"},body:JSON.stringify({slug:name,brand_name:brandName,primary_color:"#001734",is_active:true})});
@@ -81,7 +81,7 @@ exports.handler=async event=>{
    if(brandName.length>120)throw fail("Nama cabang maksimal 120 karakter.");
    const availability=await checkName(name,ctx);
    if(!availability.available)throw fail(availability.reason||"Nama Netlify tidak tersedia.");
-   const anchorSite=await netlify("/sites/aura-optikal");
+   const anchorSite=await netlify("/sites/aura-optikal.netlify.app");
    const accountSlug=anchorSite.account_slug;
    const accountId=anchorSite.account_id||accountSlug;
    if(!accountSlug||!accountId)throw fail("Tidak dapat membaca workspace Netlify dari Site Aura Optikal.",503);
