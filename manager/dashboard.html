@@ -1,7 +1,58 @@
 <!doctype html>
-<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#001734"><title>Dashboard — AURA WEBSITE MANAGER</title><link rel="stylesheet" href="./assets/manager.css"></head>
-<body><main class="page"><section class="panel"><div class="mark" aria-hidden="true">A</div><p class="eyebrow">AURA WEBSITE MANAGER</p><h1 id="heading">Memuat dashboard…</h1><p class="intro" id="detail">Memeriksa sesi dan hak akses akun.</p><button id="logout" type="button">Keluar</button><p class="message" id="message" role="status"></p></section></main>
+<html lang="id">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#001734"><title>Dashboard — AURA WEBSITE MANAGER</title><link rel="stylesheet" href="./assets/manager.css"></head>
+<body class="manager-body">
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="side-brand"><div class="mark" aria-hidden="true">A</div><div><strong>AURA WEBSITE MANAGER</strong><small>CONTROL PANEL</small></div></div>
+    <div><p class="side-label">MENU UTAMA</p><nav class="side-nav" id="navigation">
+      <a class="nav-item active" href="#overview"><span class="nav-icon">⌂</span>Ringkasan</a>
+      <a class="nav-item owner-only" href="#branches"><span class="nav-icon">▦</span>Kelola Cabang</a>
+      <a class="nav-item" href="#profile"><span class="nav-icon">◉</span>Profil Toko</a>
+      <a class="nav-item" href="#products"><span class="nav-icon">◇</span>Produk & Kategori</a>
+      <a class="nav-item" href="#promotions"><span class="nav-icon">✳</span>Promosi</a>
+      <a class="nav-item" href="#gallery"><span class="nav-icon">▧</span>Galeri</a>
+      <a class="nav-item" href="#hours"><span class="nav-icon">◷</span>Jam Operasional</a>
+    </nav></div>
+    <div class="side-bottom"><button class="logout-btn" id="logout" type="button">Keluar dari Manager</button></div>
+  </aside>
+  <main class="main-area" id="overview">
+    <header class="topbar"><div class="crumb">Workspace / <strong>Ringkasan</strong></div><div class="user-chip"><span class="avatar" id="avatar">A</span><span id="identity">Memuat akun…</span></div></header>
+    <section class="welcome"><h1 id="heading">Selamat datang</h1><p id="subheading">Ringkasan pengelolaan website Aura Optikal.</p></section>
+    <section class="stat-grid">
+      <article class="stat-card"><small>Cabang aktif</small><strong id="branch-stat">—</strong></article>
+      <article class="stat-card"><small>Status website</small><strong style="font-size:17px">Siap dikelola</strong></article>
+      <article class="stat-card"><small>Akses akun</small><strong id="role-stat" style="font-size:17px">—</strong></article>
+    </section>
+    <section class="content-card" id="modules">
+      <div class="section-head"><h2>Pengelolaan Website</h2><span>Modul yang tersedia dalam workspace</span></div>
+      <div class="module-grid">
+        <article class="module-card" id="branches-card"><div class="module-icon">▦</div><div><h3>Kelola Cabang</h3><p>Daftar cabang, domain, dan akses pengelola.</p></div><span class="module-tag">OWNER</span></article>
+        <article class="module-card"><div class="module-icon">◉</div><div><h3>Profil Toko</h3><p>Nama toko, alamat, kontak, tautan sosial, dan informasi utama.</p></div><span class="module-tag">KONTEN</span></article>
+        <article class="module-card"><div class="module-icon">◇</div><div><h3>Produk & Kategori</h3><p>Kelola katalog produk yang ditampilkan pada website.</p></div><span class="module-tag">KONTEN</span></article>
+        <article class="module-card"><div class="module-icon">✳</div><div><h3>Promosi</h3><p>Atur materi promosi dan periode penayangannya.</p></div><span class="module-tag">KONTEN</span></article>
+        <article class="module-card"><div class="module-icon">▧</div><div><h3>Galeri</h3><p>Kelola foto toko dan gambar pendukung website.</p></div><span class="module-tag">MEDIA</span></article>
+        <article class="module-card"><div class="module-icon">◷</div><div><h3>Jam Operasional</h3><p>Atur jam buka dan informasi operasional cabang.</p></div><span class="module-tag">KONTEN</span></article>
+      </div>
+    </section>
+    <p class="message" id="status" role="status" style="margin-top:14px"></p>
+  </main>
+</div>
 <script>
-(async()=>{try{const r=await fetch("/.netlify/functions/manager-me");const d=await r.json();if(!r.ok)throw new Error(d.error||"Sesi tidak valid");document.querySelector("#heading").textContent=d.role==="owner"?"Dashboard Owner":"Dashboard Pengelola Cabang";document.querySelector("#detail").textContent=d.branch_name||"Akses seluruh cabang";}catch(e){location.replace("./index.html");}})();
-document.querySelector("#logout").addEventListener("click",async()=>{await fetch("/.netlify/functions/manager-logout",{method:"POST"});location.replace("./index.html");});
-</script></body></html>
+(async()=>{
+ const heading=document.querySelector("#heading"),sub=document.querySelector("#subheading"),identity=document.querySelector("#identity"),avatar=document.querySelector("#avatar"),roleStat=document.querySelector("#role-stat"),branchStat=document.querySelector("#branch-stat");
+ try{
+  const r=await fetch("/.netlify/functions/manager-me",{headers:{"Accept":"application/json"}});
+  const d=await r.json();if(!r.ok)throw new Error(d.error||"Sesi tidak valid");
+  const owner=d.role==="owner";
+  heading.textContent=owner?"Dashboard Owner":"Dashboard Pengelola Cabang";
+  sub.textContent=owner?"Kelola seluruh cabang dan konten website Aura Optikal.":"Kelola konten website cabang "+(d.branch_name||"Anda")+".";
+  identity.textContent=owner?"Owner":(d.branch_name||"Pengelola Cabang");
+  avatar.textContent=owner?"O":"C";roleStat.textContent=owner?"Seluruh cabang":"Cabang sendiri";
+  branchStat.textContent=owner?"Semua cabang":(d.branch_name||"1 cabang");
+  if(!owner){document.querySelectorAll(".owner-only,#branches-card").forEach(el=>el.remove());}
+ }catch(e){location.replace("./index.html");}
+})();
+document.querySelector("#logout").addEventListener("click",async()=>{try{await fetch("/.netlify/functions/manager-logout",{method:"POST"});}finally{location.replace("./index.html");}});
+</script>
+</body></html>
