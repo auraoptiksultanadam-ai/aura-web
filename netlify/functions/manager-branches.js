@@ -96,9 +96,12 @@ exports.handler=async event=>{
   if(type==="branches"&&event.httpMethod==="POST"){
    if(!process.env.NETLIFY_AUTH_TOKEN)throw fail("Token Netlify belum tersedia pada deploy branch ini. Periksa environment variable NETLIFY_AUTH_TOKEN.",503);
    const brandName=String(body.brand_name||"").trim();
+   const managerEmail=String(body.manager_email||"").trim().toLowerCase();
    const name=cleanName(body.netlify_name||body.slug);
    if(!brandName)throw fail("Nama cabang wajib diisi.");
    if(brandName.length>120)throw fail("Nama cabang maksimal 120 karakter.");
+   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(managerEmail))throw fail("Email pengelola cabang wajib diisi dengan format yang valid.");
+   if(!process.env.SUPABASE_SERVICE_ROLE_KEY)throw fail("Secret SUPABASE_SERVICE_ROLE_KEY belum dipasang pada Netlify branch deploy.",503);
    const availability=await checkName(name,ctx);
    if(!availability.available)throw fail(availability.reason||"Nama Netlify tidak tersedia.");
    const anchorSite=await netlify("/sites/aura-optikal.netlify.app");
@@ -107,6 +110,7 @@ exports.handler=async event=>{
    if(!accountSlug||!accountId)throw fail("Tidak dapat membaca workspace Netlify dari Site Aura Optikal.",503);
    const site=await netlify("/"+encodeURIComponent(accountSlug)+"/sites",{method:"POST",body:JSON.stringify({name})});
    let createdBranchId=null;
+   let invitedUserId=null;
    try{
     const envUrl="/accounts/"+encodeURIComponent(accountId)+"/env?site_id="+encodeURIComponent(site.id);
     const envs=[
@@ -117,6 +121,9 @@ exports.handler=async event=>{
     if(!envRes.ok){const msg=await envRes.text();throw fail("Site Netlify dibuat, tetapi konfigurasi koneksi Supabase gagal: "+msg.slice(0,220));}
     const branch=await saveBranchAndDomain(ctx,name,brandName,site);
     createdBranchId=branch.id;
+    const origin=event.headers.origin||event.headers.Origin;
+    const invited=await inviteBranchManager(managerEmail,branch.id,brandName,origin+"/manager/accept-invite.html");
+    invitedUserId=invited.id;
     const repo={provider:"github",repo:REPO,repo_path:REPO,repo_url:"https://github.com/"+REPO,repo_branch:DEPLOY_BRANCH,dir:".",functions_dir:"netlify/functions",public_repo:true,cmd:""};
     const installationId=anchorSite.build_settings?.installation_id||anchorSite.repo?.installation_id;
     if(installationId)repo.installation_id=installationId;
@@ -124,6 +131,7 @@ exports.handler=async event=>{
     await netlify("/sites/"+encodeURIComponent(site.id)+"/metadata",{method:"PUT",body:JSON.stringify({aura_branch_id:branch.id,aura_branch_slug:name,managed_by:"AURA WEBSITE MANAGER"})});
     return response(201,{ok:true,item:branch,site:{id:site.id,name:site.name,hostname:name+".netlify.app",url:site.ssl_url||site.url,admin_url:site.admin_url},manager:{email:invited.email},message:"Cabang dan Netlify Site berhasil dibuat. Undangan pengelola telah dikirim ke "+invited.email+". Deploy awal sedang diproses."},ctx);
    }catch(error){
+    if(invitedUserId&&process.env.SUPABASE_SERVICE_ROLE_KEY){try{const key=process.env.SUPABASE_SERVICE_ROLE_KEY;await fetch(SUPABASE_URL+"/auth/v1/admin/users/"+encodeURIComponent(invitedUserId),{method:"DELETE",headers:{apikey:key,Authorization:"Bearer "+key}});}catch{}}
     if(createdBranchId){
      for(const table of ["operating_hours","branch_settings","branch_domains","branches"]){
       try{const key=table==="branches"?"id":"branch_id";await fetch(base()+table+"?"+key+"=eq."+encodeURIComponent(createdBranchId),{method:"DELETE",headers:ctx.headers});}catch{}
