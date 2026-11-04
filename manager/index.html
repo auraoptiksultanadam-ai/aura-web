@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#001734">
+  <title>Masuk — AURA WEBSITE MANAGER</title>
+  <link rel="stylesheet" href="./assets/manager.css">
+</head>
+<body>
+  <main class="page">
+    <section class="panel" aria-labelledby="title">
+      <div class="mark" aria-hidden="true">A</div>
+      <p class="eyebrow">AURA OPTIKAL</p>
+      <h1 id="title">Website Manager</h1>
+      <p class="intro">Kelola informasi website dengan akses sesuai peran akun Anda.</p>
+      <form id="login-form">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" autocomplete="username" placeholder="nama@email.com" required>
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Masukkan password" required>
+        <button id="submit" type="submit">Masuk ke Manager</button>
+        <p id="message" class="message" role="status" aria-live="polite"></p>
+      </form>
+      <footer>Secure access · Aura Optikal</footer>
+    </section>
+  </main>
+  <script src="./assets/login.js" defer></script>
+</body>
+</html>
