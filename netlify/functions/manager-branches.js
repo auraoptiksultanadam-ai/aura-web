@@ -26,18 +26,28 @@ async function checkName(name,ctx){
  return {available:!taken&&!local.length,hostname:name+".netlify.app",reason:taken?"Nama sudah dipakai di workspace Netlify Aura.":local.length?"Nama sudah terdaftar sebagai cabang Aura.":"" ,note:"Pemeriksaan awal mencakup workspace Aura. Netlify tetap memvalidasi ketersediaan global saat Site dibuat."};
 }
 async function saveBranchAndDomain(ctx,name,brandName,site){
- const branchRes=await fetch(base()+"branches",{method:"POST",headers:{...ctx.headers,Prefer:"return=representation"},body:JSON.stringify({slug:name,brand_name:brandName,primary_color:"#001734",is_active:true})});
- const branchRows=await branchRes.json();
- if(!branchRes.ok||!branchRows[0]?.id)throw fail(branchRows.message||"Gagal menyimpan data cabang.");
- const branch=branchRows[0],branchId=branch.id;
- const domainRes=await fetch(base()+"branch_domains",{method:"POST",headers:{...ctx.headers,Prefer:"return=representation"},body:JSON.stringify({branch_id:branchId,hostname:name+".netlify.app",is_primary:true,is_active:true})});
- if(!domainRes.ok)throw fail("Gagal menyimpan domain cabang.");
- const settingsRes=await fetch(base()+"branch_settings",{method:"POST",headers:{...ctx.headers,Prefer:"return=minimal"},body:JSON.stringify({branch_id:branchId,hero_badge_text:"Selamat datang di "+brandName,hero_description:"Informasi toko sedang disiapkan oleh pengelola cabang.",meta_title:brandName+" | Website Resmi"})});
- if(!settingsRes.ok)throw fail("Gagal menyiapkan profil awal cabang.");
- const hours=Array.from({length:7},(_,day_of_week)=>({branch_id:branchId,day_of_week,open_time:"08:00",close_time:"22:00",is_closed:true,notes:"Atur jam operasional cabang"}));
- const hoursRes=await fetch(base()+"operating_hours",{method:"POST",headers:{...ctx.headers,Prefer:"return=minimal"},body:JSON.stringify(hours)});
- if(!hoursRes.ok)throw fail("Gagal menyiapkan jam operasional awal cabang.");
- return branch;
+ let branchId=null;
+ try{
+  const branchRes=await fetch(base()+"branches",{method:"POST",headers:{...ctx.headers,Prefer:"return=representation"},body:JSON.stringify({slug:name,brand_name:brandName,primary_color:"#001734",is_active:true})});
+  const branchRows=await branchRes.json();
+  if(!branchRes.ok||!branchRows[0]?.id)throw fail(branchRows.message||"Gagal menyimpan data cabang.");
+  const branch=branchRows[0];branchId=branch.id;
+  const domainRes=await fetch(base()+"branch_domains",{method:"POST",headers:{...ctx.headers,Prefer:"return=representation"},body:JSON.stringify({branch_id:branchId,hostname:name+".netlify.app",is_primary:true,is_active:true})});
+  if(!domainRes.ok)throw fail("Gagal menyimpan domain cabang.");
+  const settingsRes=await fetch(base()+"branch_settings",{method:"POST",headers:{...ctx.headers,Prefer:"return=minimal"},body:JSON.stringify({branch_id:branchId,hero_badge_text:"Selamat datang di "+brandName,hero_description:"Informasi toko sedang disiapkan oleh pengelola cabang.",meta_title:brandName+" | Website Resmi"})});
+  if(!settingsRes.ok)throw fail("Gagal menyiapkan profil awal cabang.");
+  const hours=Array.from({length:7},(_,day_of_week)=>({branch_id:branchId,day_of_week,open_time:"08:00",close_time:"22:00",is_closed:true,notes:"Atur jam operasional cabang"}));
+  const hoursRes=await fetch(base()+"operating_hours",{method:"POST",headers:{...ctx.headers,Prefer:"return=minimal"},body:JSON.stringify(hours)});
+  if(!hoursRes.ok)throw fail("Gagal menyiapkan jam operasional awal cabang.");
+  return branch;
+ }catch(error){
+  if(branchId){
+   for(const table of ["operating_hours","branch_settings","branch_domains","branches"]){
+    try{await fetch(base()+table+"?branch_id=eq."+encodeURIComponent(branchId),{method:"DELETE",headers:ctx.headers});}catch{}
+   }
+  }
+  throw error;
+ }
 }
 exports.handler=async event=>{
  let ctx;
