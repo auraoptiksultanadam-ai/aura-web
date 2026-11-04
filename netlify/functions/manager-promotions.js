@@ -9,7 +9,7 @@ if(event.httpMethod==="DELETE"){if(!id)throw Object.assign(new Error("ID promosi
 let body;try{body=JSON.parse(event.body||"{}")}catch{throw Object.assign(new Error("Format data tidak valid."),{statusCode:400})}
 const data={branch_id:branchId};for(const k of allowed)if(Object.hasOwn(body,k))data[k]=body[k];
 if(!String(data.title||"").trim())throw Object.assign(new Error("Judul promosi wajib diisi."),{statusCode:400});
-if(!["promo","event","announcement"].includes(data.category||"promo"))throw Object.assign(new Error("Kategori promosi tidak valid."),{statusCode:400});
+
 if(!["draft","published","archived"].includes(data.status||"draft"))throw Object.assign(new Error("Status promosi tidak valid."),{statusCode:400});
 data.title=String(data.title).trim();data.updated_at=new Date().toISOString();if(data.starts_at==="")data.starts_at=null;if(data.ends_at==="")data.ends_at=null;
 const url=event.httpMethod==="PATCH"?(id?base()+"?id=eq."+encodeURIComponent(id)+"&branch_id=eq."+encodeURIComponent(branchId):null):base();if(!url)throw Object.assign(new Error("ID promosi tidak ditemukan."),{statusCode:400});
