@@ -77,10 +77,14 @@ exports.handler=async event=>{
    if(brandName.length>120)throw fail("Nama cabang maksimal 120 karakter.");
    const availability=await checkName(name,ctx);
    if(!availability.available)throw fail(availability.reason||"Nama Netlify tidak tersedia.");
-   const site=await netlify("/sites",{method:"POST",body:JSON.stringify({name})});
+   const anchorSite=await netlify("/sites/aura-optikal");
+   const accountSlug=anchorSite.account_slug;
+   const accountId=anchorSite.account_id||accountSlug;
+   if(!accountSlug||!accountId)throw fail("Tidak dapat membaca workspace Netlify dari Site Aura Optikal.",503);
+   const site=await netlify("/"+encodeURIComponent(accountSlug)+"/sites",{method:"POST",body:JSON.stringify({name})});
    let createdBranchId=null;
    try{
-    const envUrl="/accounts/"+encodeURIComponent(site.account_id||site.account_slug)+"/env?site_id="+encodeURIComponent(site.id);
+    const envUrl="/accounts/"+encodeURIComponent(accountId)+"/env?site_id="+encodeURIComponent(site.id);
     const envs=[
      {key:"SUPABASE_URL",values:[{value:SUPABASE_URL,context:"all"}],is_secret:true},
      {key:"SUPABASE_ANON_KEY",values:[{value:SUPABASE_ANON_KEY,context:"all"}],is_secret:true}
@@ -90,6 +94,8 @@ exports.handler=async event=>{
     const branch=await saveBranchAndDomain(ctx,name,brandName,site);
     createdBranchId=branch.id;
     const repo={provider:"github",repo:REPO,repo_path:REPO,repo_url:"https://github.com/"+REPO,repo_branch:DEPLOY_BRANCH,dir:".",functions_dir:"netlify/functions",public_repo:true,cmd:""};
+    const installationId=anchorSite.build_settings?.installation_id||anchorSite.repo?.installation_id;
+    if(installationId)repo.installation_id=installationId;
     await netlify("/sites/"+encodeURIComponent(site.id),{method:"PUT",body:JSON.stringify({repo})});
     await netlify("/sites/"+encodeURIComponent(site.id)+"/metadata",{method:"PUT",body:JSON.stringify({aura_branch_id:branch.id,aura_branch_slug:name,managed_by:"AURA WEBSITE MANAGER"})});
     return response(201,{ok:true,item:branch,site:{id:site.id,name:site.name,hostname:name+".netlify.app",url:site.ssl_url||site.url,admin_url:site.admin_url},message:"Cabang dan Netlify Site berhasil dibuat. Deploy awal sedang diproses."},ctx);
