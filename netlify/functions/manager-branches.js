@@ -29,19 +29,19 @@ async function checkName(name,ctx){
  const taken=candidates.some(s=>String(s.name||"").toLowerCase()===name||String(s.custom_domain||"").toLowerCase()===name+".netlify.app"||String(s.ssl_url||"").toLowerCase().includes(name+".netlify.app"));
  return {available:!taken&&!local.length,hostname:name+".netlify.app",reason:taken?"Subdomain sudah terdaftar sebagai Site di Netlify. Gunakan nama lain atau periksa Site lama yang memakai nama ini.":local.length?"Nama sudah terdaftar sebagai cabang Aura.":"",note:"Netlify memeriksa keunikan subdomain secara global saat Site dibuat."};
 }
-async function createNetlifySite(requestedName,ctx){
+async function createNetlifySite(requestedName,ctx,accountSlug){
  const baseName=requestedName;
- let lastConflict=null;
+ 
  for(let attempt=0;attempt<21;attempt++){
   const candidate=attempt===0?baseName:baseName+"-aura"+(attempt===1?"":String(attempt));
   if(candidate.length>63)continue;
   const availability=await checkName(candidate,ctx);
   if(!availability.available)continue;
   try{
-   const site=await netlify("/"+encodeURIComponent((await netlify("/sites/aura-optikal.netlify.app")).account_slug)+"/sites",{method:"POST",body:JSON.stringify({name:candidate})});
+   const site=await netlify("/"+encodeURIComponent(accountSlug)+"/sites",{method:"POST",body:JSON.stringify({name:candidate})});
    return {site,name:candidate,autoAdjusted:attempt>0,requestedName:baseName};
   }catch(error){
-   if(error.statusCode===422&&/subdomain|must be unique/i.test(error.message)){lastConflict=error;continue;}
+   if(error.statusCode===422&&/subdomain|must be unique/i.test(error.message)){continue;}
    throw error;
   }
  }
@@ -140,15 +140,13 @@ exports.handler=async event=>{
    if(!/^[a-z0-9][a-z0-9._-]{2,31}$/.test(managerUsername))throw fail("Username pengelola harus 3–32 karakter dan hanya memakai huruf kecil, angka, titik, garis bawah, atau tanda hubung.");
    if(managerPassword.length<10||managerPassword.length>72)throw fail("Password awal pengelola harus 10–72 karakter.");
    if(!process.env.SUPABASE_SERVICE_ROLE_KEY)throw fail("Secret SUPABASE_SERVICE_ROLE_KEY belum dipasang pada Netlify branch deploy.",503);
-   const availability=await checkName(name,ctx);
-   if(!availability.available)throw fail(availability.reason||"Nama Netlify tidak tersedia.");
    const anchorSite=await netlify("/sites/aura-optikal.netlify.app");
    const accountSlug=anchorSite.account_slug;
    const accountId=anchorSite.account_id||accountSlug;
    if(!accountSlug||!accountId)throw fail("Tidak dapat membaca workspace Netlify dari Site Aura Optikal.",503);
-   let site;
-   try{site=await netlify("/"+encodeURIComponent(accountSlug)+"/sites",{method:"POST",body:JSON.stringify({name})});}
-   catch(error){if(error.statusCode===422&&String(error.message).includes("subdomain"))throw fail("Subdomain "+name+".netlify.app sudah dipakai di Netlify. Pemeriksaan awal tidak menemukan Site tersebut; kemungkinan Site lama/orphan masih memakai nama ini. Gunakan nama subdomain lain atau hapus Site lama dari Netlify sebelum mencoba lagi.",422);throw error;}
+   const provisioned=await createNetlifySite(name,ctx,accountSlug);
+   const site=provisioned.site;
+   name=provisioned.name;
    let createdBranchId=null;
    let createdManagerUserId=null;
    try{
