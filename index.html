@@ -80,18 +80,12 @@
         <span class="material-symbols-outlined text-[28px] text-secondary">location_on</span>
         <div>
           <p class="font-label-md text-label-md text-primary">Aura Optikal Sultan Adam</p>
-          <p class="font-body-sm text-body-sm text-on-surface-variant">Lihat penilaian pelanggan di Google</p>
+          <p class="font-body-sm text-body-sm text-on-surface-variant">Rating dan ulasan pelanggan di Google Maps</p>
         </div>
       </div>
-      <div class="flex items-center gap-3">
-        <div class="text-right">
-          <div class="flex items-center justify-end gap-1">
-            <span class="font-headline-md text-headline-md text-primary" data-google-rating>—</span>
-            <span class="text-[#D99B22] text-xl" aria-hidden="true">★</span>
-          </div>
-          <p class="font-body-sm text-body-sm text-on-surface-variant"><span data-google-count>Memuat rating…</span> ulasan Google</p>
-        </div>
-        <span class="material-symbols-outlined text-secondary group-hover:translate-x-1 transition-transform">arrow_forward</span>
+      <div class="flex items-center gap-2 text-secondary">
+        <span class="font-label-md text-label-md">Lihat di Google</span>
+        <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
       </div>
     </a>
   </div>
@@ -763,18 +757,14 @@
 <!-- Google Map & Visual Reference -->
 <div class="lg:col-span-6 flex flex-col gap-6">
 <div class="p-6 rounded-2xl bg-surface-container-lowest shadow-sm flex flex-col gap-5">
-<!-- Google rating summary; populated from the same live endpoint as the top strip -->
+<!-- Google Maps rating shortcut; rating details open on the official listing -->
 <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-surface-container">
   <div>
-    <p class="font-label-sm text-label-sm uppercase tracking-wider text-secondary">GOOGLE RATING</p>
-    <div class="flex items-center gap-2 mt-1">
-      <span class="font-display-lg text-display-lg text-primary" data-google-rating>—</span>
-      <span class="text-[#D99B22] text-2xl" aria-hidden="true">★</span>
-      <span class="font-body-sm text-body-sm text-on-surface-variant">/ 5</span>
-    </div>
-    <p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Dari <span data-google-count>memuat…</span> ulasan Google</p>
+    <p class="font-label-sm text-label-sm uppercase tracking-wider text-secondary">GOOGLE MAPS</p>
+    <p class="font-headline-sm text-headline-sm text-primary mt-1">Rating &amp; Ulasan Pelanggan</p>
+    <p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Lihat penilaian terbaru langsung di Google</p>
   </div>
-  <a class="inline-flex items-center gap-2 text-secondary hover:text-primary font-label-md text-label-md" data-google-link href="https://maps.app.goo.gl/FnnzfVPGaW1opLrC9" rel="noopener noreferrer" target="_blank">
+  <a class="inline-flex items-center gap-2 text-secondary hover:text-primary font-label-md text-label-md" href="https://maps.app.goo.gl/FnnzfVPGaW1opLrC9" rel="noopener noreferrer" target="_blank">
     Lihat di Google Maps <span class="material-symbols-outlined text-[18px]">open_in_new</span>
   </a>
 </div>
