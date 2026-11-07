@@ -56,7 +56,7 @@ catalog.forEach(a=>{
  else{a.href="#";a.removeAttribute("target");a.setAttribute("aria-disabled","true");a.title="Katalog Softlens cabang ini belum diatur.";a.addEventListener("click",e=>e.preventDefault());}
 });
 if(s.meta_title)document.title=s.meta_title;if(s.meta_description){let m=document.querySelector('meta[name="description"]');if(!m){m=document.createElement("meta");m.name="description";document.head.append(m);}m.content=s.meta_description;}
-renderProducts(d.products||[],phone);renderGallery(d.gallery||[]);renderPromos(d.promotions||[]);renderHours(d.hours||[]);
+renderProducts(d.products||[],phone);renderGallery(d.gallery||[]);renderPromos(d.promotions||[]);renderHours(d.hours||[]);if(page&&window.AuraPageContent)window.AuraPageContent.refresh(page);
 }catch(e){console.warn("Dynamic branch content unavailable; static website content remains visible.");}}
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
 })();
