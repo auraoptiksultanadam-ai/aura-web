@@ -26,5 +26,5 @@ window.addEventListener("message",e=>{if(e.source!==window.parent||e.data?.sourc
 const style=document.createElement("style");style.textContent="body{cursor:crosshair!important}.aura-editor-selected{outline:2px solid #14b8a6!important;outline-offset:3px!important;position:relative!important}.aura-editor-selected:hover{outline-color:#001734!important}";document.head.append(style);}
 keyTextNodes();keyImages();keyLinks();capture();
 const initial=window.__AURA_PAGE_CONTENT__;if(initial)apply(initial);
-window.AuraPageContent={apply,capture,refresh(data){keyTextNodes();keyImages();keyLinks();if(data)apply(data);}};if(editing)send("ready",{title:document.title});
+window.AuraPageContent={apply,capture,refresh(data){if(data)apply(data);keyTextNodes();keyImages();keyLinks();if(data)apply(data);}};if(editing)send("ready",{title:document.title});
 })();
