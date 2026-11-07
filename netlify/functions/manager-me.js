@@ -14,9 +14,9 @@ exports.handler=async event=>{
   const mr=await fetch(SUPABASE_URL+"/rest/v1/branch_users?select=role,branch_id,is_active&user_id=eq."+encodeURIComponent(user.id)+"&is_active=eq.true",{headers:authHeaders}),members=await mr.json();
   if(!mr.ok||!Array.isArray(members))return json(502,{error:"Gagal memeriksa hak akses."});
   const member=members.find(x=>x.role==="owner"||x.role==="branch_manager");if(!member)return json(403,{error:"Akun tidak memiliki akses aktif."});
-  let branch_name=null;if(member.branch_id){const br=await fetch(SUPABASE_URL+"/rest/v1/branches?select=brand_name&id=eq."+encodeURIComponent(member.branch_id),{headers:authHeaders});const b=await br.json();branch_name=br.ok&&b[0]?b[0].brand_name:null;}
+  let branch_name=null,branch_slug=null;if(member.branch_id){const br=await fetch(SUPABASE_URL+"/rest/v1/branches?select=brand_name,slug&id=eq."+encodeURIComponent(member.branch_id),{headers:authHeaders});const b=await br.json();if(br.ok&&b[0]){branch_name=b[0].brand_name;branch_slug=b[0].slug;}}
   let username=null,must_change_password=false;
   if(SUPABASE_SERVICE_ROLE_KEY){const keyHeaders={apikey:SUPABASE_SERVICE_ROLE_KEY,Authorization:"Bearer "+SUPABASE_SERVICE_ROLE_KEY};const ar=await fetch(SUPABASE_URL+"/rest/v1/manager_accounts?select=username,must_change_password&user_id=eq."+encodeURIComponent(user.id),{headers:keyHeaders});const a=await ar.json();if(ar.ok&&a[0]){username=a[0].username;must_change_password=!!a[0].must_change_password;}}
-  const extra=refreshed?{"Set-Cookie":sessionCookie(session)}:{};return json(200,{role:member.role,branch_id:member.branch_id,branch_name,username,must_change_password},extra);
+  const extra=refreshed?{"Set-Cookie":sessionCookie(session)}:{};return json(200,{role:member.role,branch_id:member.branch_id,branch_name,branch_slug,username,must_change_password},extra);
  }catch{return json(502,{error:"Gagal memeriksa sesi."})}
 };
