@@ -5,10 +5,10 @@ form?.addEventListener("submit",async(event)=>{
   event.preventDefault();message.textContent="";button.disabled=true;button.textContent="Memeriksa akun…";
   const data=new FormData(form);
   try{
-    const response=await fetch("/.netlify/functions/manager-login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:data.get("email"),password:data.get("password")})});
+    const response=await fetch("/.netlify/functions/manager-login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:data.get("username"),password:data.get("password")})});
     const result=await response.json().catch(()=>({}));
     if(!response.ok)throw new Error(result.error||"Login belum berhasil.");
-    window.location.assign("./dashboard.html");
+    window.location.assign(result.must_change_password?"./change-password.html":"./dashboard.html");
   }catch(error){message.textContent=error.message||"Terjadi kesalahan. Silakan coba lagi."}
   finally{button.disabled=false;button.textContent="Masuk ke Manager"}
 });
