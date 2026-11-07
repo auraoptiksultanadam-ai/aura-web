@@ -152,10 +152,10 @@ exports.handler=async event=>{
    try{
     const envUrl="/accounts/"+encodeURIComponent(accountId)+"/env?site_id="+encodeURIComponent(site.id);
     const envs=[
-     {key:"SUPABASE_URL",values:[{value:SUPABASE_URL,context:"all"}],is_secret:true},
-     {key:"SUPABASE_ANON_KEY",values:[{value:SUPABASE_ANON_KEY,context:"all"}],is_secret:true},
-     {key:"SUPABASE_SERVICE_ROLE_KEY",values:[{value:process.env.SUPABASE_SERVICE_ROLE_KEY,context:"all"}],is_secret:true},
-     {key:"NETLIFY_AUTH_TOKEN",values:[{value:process.env.NETLIFY_AUTH_TOKEN,context:"all"}],is_secret:true}
+     {key:"SUPABASE_URL",values:[{value:SUPABASE_URL,context:"all"}],scopes:["functions"],is_secret:true},
+     {key:"SUPABASE_ANON_KEY",values:[{value:SUPABASE_ANON_KEY,context:"all"}],scopes:["functions"],is_secret:true},
+     {key:"SUPABASE_SERVICE_ROLE_KEY",values:[{value:process.env.SUPABASE_SERVICE_ROLE_KEY,context:"all"}],scopes:["functions"],is_secret:true},
+     {key:"NETLIFY_AUTH_TOKEN",values:[{value:process.env.NETLIFY_AUTH_TOKEN,context:"all"}],scopes:["functions"],is_secret:true}
     ];
     const envRes=await fetch(NETLIFY_API+envUrl,{method:"POST",headers:netlifyHeaders(),body:JSON.stringify(envs)});
     if(!envRes.ok){const msg=await envRes.text();throw fail("Site Netlify dibuat, tetapi konfigurasi koneksi Supabase gagal: "+msg.slice(0,220));}
