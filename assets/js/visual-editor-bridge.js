@@ -1,6 +1,6 @@
 (()=>{"use strict";
 const editing=new URLSearchParams(location.search).has("aura_editor");
-const send=(type,payload={})=>window.parent.postMessage({source:"aura-visual-editor",type,...payload},location.origin);
+const send=(type,payload={})=>window.parent.postMessage({source:"aura-visual-editor",type,...payload},location.origin);let readySent=false;const notifyReady=()=>{if(editing&&!readySent){readySent=true;send("ready",{title:document.title});}};
 const main=document.querySelector("main")||document.body;
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 let content={version:1,elements:{},sections:[],customSections:[],removedSections:[]},selected=null,textCounter=0,imageCounter=0,linkCounter=0;const originalSectionIds=[...document.querySelectorAll("main section[id]")].map(x=>x.id);
@@ -26,5 +26,5 @@ window.addEventListener("message",e=>{if(e.source!==window.parent||e.data?.sourc
 const style=document.createElement("style");style.textContent="body{cursor:crosshair!important}.aura-editor-selected{outline:2px solid #14b8a6!important;outline-offset:3px!important;position:relative!important}.aura-editor-selected:hover{outline-color:#001734!important}";document.head.append(style);}
 keyTextNodes();keyImages();keyLinks();capture();
 const initial=window.__AURA_PAGE_CONTENT__;if(initial)apply(initial);
-window.AuraPageContent={apply,capture,refresh(data){if(data)apply(data);keyTextNodes();keyImages();keyLinks();apply(data||content);if(editing)capture();}};if(editing)send("ready",{title:document.title});
+window.AuraPageContent={apply,capture,refresh(data){if(data)apply(data);keyTextNodes();keyImages();keyLinks();apply(data||content);if(editing)capture();},ready:notifyReady};if(editing)setTimeout(notifyReady,10000);
 })();
