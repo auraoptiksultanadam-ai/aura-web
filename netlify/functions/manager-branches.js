@@ -151,14 +151,14 @@ exports.handler=async event=>{
    let createdManagerUserId=null;
    try{
     const envUrl="/accounts/"+encodeURIComponent(accountId)+"/env?site_id="+encodeURIComponent(site.id);
+    // Netlify Free does not support per-variable scopes. Set only public config through API;
+    // secret keys must be added manually in the Site UI with Functions scope.
     const envs=[
-     {key:"SUPABASE_URL",values:[{value:SUPABASE_URL,context:"all"}],scopes:["functions"],is_secret:true},
-     {key:"SUPABASE_ANON_KEY",values:[{value:SUPABASE_ANON_KEY,context:"all"}],scopes:["functions"],is_secret:true},
-     {key:"SUPABASE_SERVICE_ROLE_KEY",values:[{value:process.env.SUPABASE_SERVICE_ROLE_KEY,context:"all"}],scopes:["functions"],is_secret:true},
-     {key:"NETLIFY_AUTH_TOKEN",values:[{value:process.env.NETLIFY_AUTH_TOKEN,context:"all"}],scopes:["functions"],is_secret:true}
+     {key:"SUPABASE_URL",values:[{value:SUPABASE_URL,context:"all"}]},
+     {key:"SUPABASE_ANON_KEY",values:[{value:SUPABASE_ANON_KEY,context:"all"}]}
     ];
     const envRes=await fetch(NETLIFY_API+envUrl,{method:"POST",headers:netlifyHeaders(),body:JSON.stringify(envs)});
-    if(!envRes.ok){const msg=await envRes.text();throw fail("Site Netlify dibuat, tetapi konfigurasi koneksi Supabase gagal: "+msg.slice(0,220));}
+    if(!envRes.ok){const msg=await envRes.text();throw fail("Site Netlify dibuat, tetapi konfigurasi dasar Supabase gagal: "+msg.slice(0,220));}
     const branch=await saveBranchAndDomain(ctx,name,brandName,site);
     createdBranchId=branch.id;
     const repo={provider:"github",repo:REPO,repo_path:REPO,repo_url:"https://github.com/"+REPO,repo_branch:DEPLOY_BRANCH,dir:".",functions_dir:"netlify/functions",public_repo:true,cmd:""};
@@ -168,7 +168,7 @@ exports.handler=async event=>{
     await netlify("/sites/"+encodeURIComponent(site.id)+"/metadata",{method:"PUT",body:JSON.stringify({aura_branch_id:branch.id,aura_branch_slug:name,managed_by:"AURA WEBSITE MANAGER"})});
     const manager=await createBranchManager(managerUsername,managerPassword,branch.id,brandName);
     createdManagerUserId=manager.id;
-    return response(201,{ok:true,item:branch,site:{id:site.id,name:site.name,hostname:name+".netlify.app",url:site.ssl_url||site.url,admin_url:site.admin_url},manager:{username:manager.username},message:provisioned.autoAdjusted?"Nama URL yang diminta sudah digunakan, jadi sistem memilih URL alternatif yang tersedia. Pengelola wajib mengganti password saat login pertama.":"Cabang dan akun pengelola berhasil dibuat. Pengelola wajib mengganti password saat login pertama.",requested_hostname:provisioned.requestedName+".netlify.app",auto_adjusted:provisioned.autoAdjusted},ctx);
+    return response(201,{ok:true,item:branch,site:{id:site.id,name:site.name,hostname:name+".netlify.app",url:site.ssl_url||site.url,admin_url:site.admin_url},manager:{username:manager.username},message:(provisioned.autoAdjusted?"Nama URL yang diminta sudah digunakan, jadi sistem memilih URL alternatif yang tersedia. ":"")+"Cabang dan akun pengelola berhasil dibuat. Sebelum login Manager berfungsi, tambahkan secret SUPABASE_SERVICE_ROLE_KEY dan NETLIFY_AUTH_TOKEN pada Site baru di Netlify dengan scope Functions. Pengelola wajib mengganti password saat login pertama.",requested_hostname:provisioned.requestedName+".netlify.app",auto_adjusted:provisioned.autoAdjusted},ctx);
    }catch(error){
     if(createdManagerUserId&&process.env.SUPABASE_SERVICE_ROLE_KEY){try{const key=process.env.SUPABASE_SERVICE_ROLE_KEY;await fetch(SUPABASE_URL+"/auth/v1/admin/users/"+encodeURIComponent(createdManagerUserId),{method:"DELETE",headers:{apikey:key,Authorization:"Bearer "+key}});}catch{}}
     if(createdBranchId){
