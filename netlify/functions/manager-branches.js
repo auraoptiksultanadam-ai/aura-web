@@ -18,12 +18,14 @@ function cleanName(value){
  return name;
 }
 async function checkName(name,ctx){
- const [remote,local]=await Promise.all([
+ const [remote,search,local]=await Promise.all([
   netlify("/sites?name="+encodeURIComponent(name)),
+  netlify("/sites?filter="+encodeURIComponent(name)),
   fetch(base()+"branches?select=id,slug,brand_name&slug=eq."+encodeURIComponent(name),{headers:ctx.headers}).then(r=>r.json())
  ]);
- const taken=Array.isArray(remote)&&remote.some(s=>String(s.name||"").toLowerCase()===name);
- return {available:!taken&&!local.length,hostname:name+".netlify.app",reason:taken?"Nama sudah dipakai di workspace Netlify Aura.":local.length?"Nama sudah terdaftar sebagai cabang Aura.":"" ,note:"Pemeriksaan awal mencakup workspace Aura. Netlify tetap memvalidasi ketersediaan global saat Site dibuat."};
+ const candidates=[...(Array.isArray(remote)?remote:[]),...(Array.isArray(search)?search:[])];
+ const taken=candidates.some(s=>String(s.name||"").toLowerCase()===name||String(s.custom_domain||"").toLowerCase()===name+".netlify.app"||String(s.ssl_url||"").toLowerCase().includes(name+".netlify.app"));
+ return {available:!taken&&!local.length,hostname:name+".netlify.app",reason:taken?"Subdomain sudah terdaftar sebagai Site di Netlify. Gunakan nama lain atau periksa Site lama yang memakai nama ini.":local.length?"Nama sudah terdaftar sebagai cabang Aura.":"",note:"Netlify memeriksa keunikan subdomain secara global saat Site dibuat."};
 }
 async function createBranchManager(username,password,branchId,brandName){
  const key=process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -124,7 +126,9 @@ exports.handler=async event=>{
    const accountSlug=anchorSite.account_slug;
    const accountId=anchorSite.account_id||accountSlug;
    if(!accountSlug||!accountId)throw fail("Tidak dapat membaca workspace Netlify dari Site Aura Optikal.",503);
-   const site=await netlify("/"+encodeURIComponent(accountSlug)+"/sites",{method:"POST",body:JSON.stringify({name})});
+   let site;
+   try{site=await netlify("/"+encodeURIComponent(accountSlug)+"/sites",{method:"POST",body:JSON.stringify({name})});}
+   catch(error){if(error.statusCode===422&&String(error.message).includes("subdomain"))throw fail("Subdomain "+name+".netlify.app sudah dipakai di Netlify. Pemeriksaan awal tidak menemukan Site tersebut; kemungkinan Site lama/orphan masih memakai nama ini. Gunakan nama subdomain lain atau hapus Site lama dari Netlify sebelum mencoba lagi.",422);throw error;}
    let createdBranchId=null;
    let createdManagerUserId=null;
    try{
