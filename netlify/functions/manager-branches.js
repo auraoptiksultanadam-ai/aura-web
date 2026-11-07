@@ -9,7 +9,7 @@ const netlifyHeaders=()=>({Authorization:"Bearer "+process.env.NETLIFY_AUTH_TOKE
 async function netlify(path,options={}){
  const r=await fetch(NETLIFY_API+path,{...options,headers:{...netlifyHeaders(),...(options.headers||{})}});
  const raw=await r.text();let data={};try{data=raw?JSON.parse(raw):{}}catch{}
- if(!r.ok)throw fail(data.message||data.error||("Netlify API gagal ("+r.status+")."),r.status===401?503:400);
+ if(!r.ok){const detail=data.message||data.error_description||data.error||data.errors||raw.slice(0,300);throw fail("Netlify API gagal ("+r.status+"): "+(typeof detail==="string"?detail:JSON.stringify(detail)),r.status===401?503:r.status===422?422:400);}
  return data;
 }
 function cleanName(value){
@@ -25,15 +25,27 @@ async function checkName(name,ctx){
  const taken=Array.isArray(remote)&&remote.some(s=>String(s.name||"").toLowerCase()===name);
  return {available:!taken&&!local.length,hostname:name+".netlify.app",reason:taken?"Nama sudah dipakai di workspace Netlify Aura.":local.length?"Nama sudah terdaftar sebagai cabang Aura.":"" ,note:"Pemeriksaan awal mencakup workspace Aura. Netlify tetap memvalidasi ketersediaan global saat Site dibuat."};
 }
-async function inviteBranchManager(email,branchId,brandName,redirectTo){
+async function createBranchManager(username,password,branchId,brandName){
  const key=process.env.SUPABASE_SERVICE_ROLE_KEY;
- if(!key)throw fail("Secret SUPABASE_SERVICE_ROLE_KEY belum dipasang pada Netlify branch deploy.",503);
- const r=await fetch(SUPABASE_URL+"/auth/v1/invite",{method:"POST",headers:{apikey:key,Authorization:"Bearer "+key,"Content-Type":"application/json"},body:JSON.stringify({email,redirect_to:redirectTo,data:{role:"branch_manager",branch_id:branchId,brand_name:brandName}})});
+ if(!key)throw fail("Secret SUPABASE_SERVICE_ROLE_KEY belum được cấu hình.",503);
+ const internalEmail=username+"@manager.aura.internal";
+ const r=await fetch(SUPABASE_URL+"/auth/v1/admin/users",{method:"POST",headers:{apikey:key,Authorization:"Bearer "+key,"Content-Type":"application/json"},body:JSON.stringify({email:internalEmail,password,email_confirm:true,user_metadata:{username,brand_name:brandName}})});
  const data=await r.json().catch(()=>({}));
- if(!r.ok||!data.id)throw fail(data.msg||data.message||data.error_description||"Undangan gagal dikirim. Pastikan email belum terdaftar dan konfigurasi SMTP Supabase aktif.",400);
- const link=await fetch(base()+"branch_users",{method:"POST",headers:{apikey:SUPABASE_ANON_KEY,Authorization:"Bearer "+key,"Content-Type":"application/json",Prefer:"return=representation"},body:JSON.stringify({user_id:data.id,branch_id:branchId,role:"branch_manager",is_active:true})});
- if(!link.ok){await fetch(SUPABASE_URL+"/auth/v1/admin/users/"+encodeURIComponent(data.id),{method:"DELETE",headers:{apikey:key,Authorization:"Bearer "+key}}).catch(()=>{});throw fail("Undangan terkirim tetapi penautan akses cabang gagal. Cek kebijakan RLS branch_users.",500);}
- return {id:data.id,email:data.email||email};
+ if(!r.ok||!data.id){
+  const detail=data.msg||data.message||data.error_description||data.error||"";
+  throw fail("Akun pengelola gagal dibuat: "+(detail||"periksa konfigurasi Supabase Auth."),r.status===422?422:400);
+ }
+ const uid=data.id;
+ try{
+  const membership=await fetch(base()+"branch_users",{method:"POST",headers:{apikey:key,Authorization:"Bearer "+key,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({user_id:uid,branch_id:branchId,role:"branch_manager",is_active:true})});
+  if(!membership.ok)throw fail("Akun dibuat tetapi hak akses cabang gagal disimpan: "+(await membership.text()).slice(0,180),500);
+  const account=await fetch(base()+"manager_accounts",{method:"POST",headers:{apikey:key,Authorization:"Bearer "+key,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({user_id:uid,username,must_change_password:true})});
+  if(!account.ok)throw fail("Akun dibuat tetapi username gagal disimpan: "+(await account.text()).slice(0,180),500);
+  return {id:uid,username};
+ }catch(error){
+  await fetch(SUPABASE_URL+"/auth/v1/admin/users/"+encodeURIComponent(uid),{method:"DELETE",headers:{apikey:key,Authorization:"Bearer "+key}}).catch(()=>{});
+  throw error;
+ }
 }
 async function saveBranchAndDomain(ctx,name,brandName,site){
  let branchId=null;
@@ -96,7 +108,7 @@ exports.handler=async event=>{
   if(type==="branches"&&event.httpMethod==="POST"){
    if(!process.env.NETLIFY_AUTH_TOKEN)throw fail("Token Netlify belum tersedia pada deploy branch ini. Periksa environment variable NETLIFY_AUTH_TOKEN.",503);
    const brandName=String(body.brand_name||"").trim();
-   const managerEmail=String(body.manager_email||"").trim().toLowerCase();
+   const managerUsername=String(body.manager_username||"").trim().toLowerCase();\n   const managerPassword=String(body.manager_password||"");
    const name=cleanName(body.netlify_name||body.slug);
    if(!brandName)throw fail("Nama cabang wajib diisi.");
    if(brandName.length>120)throw fail("Nama cabang maksimal 120 karakter.");
@@ -110,7 +122,7 @@ exports.handler=async event=>{
    if(!accountSlug||!accountId)throw fail("Tidak dapat membaca workspace Netlify dari Site Aura Optikal.",503);
    const site=await netlify("/"+encodeURIComponent(accountSlug)+"/sites",{method:"POST",body:JSON.stringify({name})});
    let createdBranchId=null;
-   let invitedUserId=null;
+   let createdManagerUserId=null;
    try{
     const envUrl="/accounts/"+encodeURIComponent(accountId)+"/env?site_id="+encodeURIComponent(site.id);
     const envs=[
@@ -131,7 +143,7 @@ exports.handler=async event=>{
     invitedUserId=invited.id;
     return response(201,{ok:true,item:branch,site:{id:site.id,name:site.name,hostname:name+".netlify.app",url:site.ssl_url||site.url,admin_url:site.admin_url},manager:{email:invited.email},message:"Cabang dan Netlify Site berhasil dibuat. Undangan pengelola telah dikirim ke "+invited.email+". Deploy awal sedang diproses."},ctx);
    }catch(error){
-    if(invitedUserId&&process.env.SUPABASE_SERVICE_ROLE_KEY){try{const key=process.env.SUPABASE_SERVICE_ROLE_KEY;await fetch(SUPABASE_URL+"/auth/v1/admin/users/"+encodeURIComponent(invitedUserId),{method:"DELETE",headers:{apikey:key,Authorization:"Bearer "+key}});}catch{}}
+    if(createdManagerUserId&&process.env.SUPABASE_SERVICE_ROLE_KEY){try{const key=process.env.SUPABASE_SERVICE_ROLE_KEY;await fetch(SUPABASE_URL+"/auth/v1/admin/users/"+encodeURIComponent(createdManagerUserId),{method:"DELETE",headers:{apikey:key,Authorization:"Bearer "+key}});}catch{}}
     if(createdBranchId){
      for(const table of ["operating_hours","branch_settings","branch_domains","branches"]){
       try{const key=table==="branches"?"id":"branch_id";await fetch(base()+table+"?"+key+"=eq."+encodeURIComponent(createdBranchId),{method:"DELETE",headers:ctx.headers});}catch{}
