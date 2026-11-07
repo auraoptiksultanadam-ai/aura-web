@@ -108,11 +108,13 @@ exports.handler=async event=>{
   if(type==="branches"&&event.httpMethod==="POST"){
    if(!process.env.NETLIFY_AUTH_TOKEN)throw fail("Token Netlify belum tersedia pada deploy branch ini. Periksa environment variable NETLIFY_AUTH_TOKEN.",503);
    const brandName=String(body.brand_name||"").trim();
-   const managerUsername=String(body.manager_username||"").trim().toLowerCase();\n   const managerPassword=String(body.manager_password||"");
+   const managerUsername=String(body.manager_username||"").trim().toLowerCase();
+   const managerPassword=String(body.manager_password||"");
    const name=cleanName(body.netlify_name||body.slug);
    if(!brandName)throw fail("Nama cabang wajib diisi.");
    if(brandName.length>120)throw fail("Nama cabang maksimal 120 karakter.");
-   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(managerEmail))throw fail("Email pengelola cabang wajib diisi dengan format yang valid.");
+   if(!/^[a-z0-9][a-z0-9._-]{2,31}$/.test(managerUsername))throw fail("Username pengelola harus 3–32 karakter dan hanya memakai huruf kecil, angka, titik, garis bawah, atau tanda hubung.");
+   if(managerPassword.length<10||managerPassword.length>72)throw fail("Password awal pengelola harus 10–72 karakter.");
    if(!process.env.SUPABASE_SERVICE_ROLE_KEY)throw fail("Secret SUPABASE_SERVICE_ROLE_KEY belum dipasang pada Netlify branch deploy.",503);
    const availability=await checkName(name,ctx);
    if(!availability.available)throw fail(availability.reason||"Nama Netlify tidak tersedia.");
@@ -139,9 +141,9 @@ exports.handler=async event=>{
     await netlify("/sites/"+encodeURIComponent(site.id),{method:"PUT",body:JSON.stringify({repo})});
     await netlify("/sites/"+encodeURIComponent(site.id)+"/metadata",{method:"PUT",body:JSON.stringify({aura_branch_id:branch.id,aura_branch_slug:name,managed_by:"AURA WEBSITE MANAGER"})});
     const origin=event.headers.origin||event.headers.Origin;
-    const invited=await inviteBranchManager(managerEmail,branch.id,brandName,origin+"/manager/accept-invite.html");
-    invitedUserId=invited.id;
-    return response(201,{ok:true,item:branch,site:{id:site.id,name:site.name,hostname:name+".netlify.app",url:site.ssl_url||site.url,admin_url:site.admin_url},manager:{email:invited.email},message:"Cabang dan Netlify Site berhasil dibuat. Undangan pengelola telah dikirim ke "+invited.email+". Deploy awal sedang diproses."},ctx);
+    const manager=await createBranchManager(managerUsername,managerPassword,branch.id,brandName);
+    createdManagerUserId=manager.id;
+    return response(201,{ok:true,item:branch,site:{id:site.id,name:site.name,hostname:name+".netlify.app",url:site.ssl_url||site.url,admin_url:site.admin_url},manager:{username:manager.username},message:"Cabang dan akun pengelola berhasil dibuat. Pengelola wajib mengganti password saat login pertama."},ctx);
    }catch(error){
     if(createdManagerUserId&&process.env.SUPABASE_SERVICE_ROLE_KEY){try{const key=process.env.SUPABASE_SERVICE_ROLE_KEY;await fetch(SUPABASE_URL+"/auth/v1/admin/users/"+encodeURIComponent(createdManagerUserId),{method:"DELETE",headers:{apikey:key,Authorization:"Bearer "+key}});}catch{}}
     if(createdBranchId){
