@@ -2,7 +2,18 @@
 "use strict";
 const $=s=>document.querySelector(s),days=["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
 let role="",branches=[],selectedBranch="",profileLoaded=false,hoursLoaded=false,catalogLoaded=false,categories=[],products=[],promosLoaded=false,galleryLoaded=false,promotions=[],gallery=[],branchRows=[],domainRows=[],userRows=[];
+
 const profileForm=$("#profile-form"),hoursList=$("#hours-list");
+const previewDock=$("#preview-dock"),previewFrame=$("#website-preview");
+function sendPreview(form){if(!previewFrame?.contentWindow||!form)return;const values={};for(const [key,value] of new FormData(form).entries()){if(typeof value==="string")values[key]=value;}if(form.elements.is_visible)values.is_visible=form.elements.is_visible.checked;if(form.elements.is_active)values.is_active=form.elements.is_active.checked;previewFrame.contentWindow.postMessage({source:"aura-manager",type:"draft-preview",form:form.id,values},location.origin);}
+$("#toggle-preview")?.addEventListener("click",()=>{previewDock.hidden=!previewDock.hidden;if(!previewDock.hidden){previewFrame.src=previewFrame.src;setTimeout(()=>document.querySelectorAll(".editor-form,.inline-editor").forEach(sendPreview),500);}});
+$("#close-preview")?.addEventListener("click",()=>{previewDock.hidden=true;});
+$("#preview-desktop")?.addEventListener("click",()=>previewDock.classList.remove("mobile-preview"));
+$("#preview-mobile")?.addEventListener("click",()=>previewDock.classList.add("mobile-preview"));
+previewFrame?.addEventListener("load",()=>{document.querySelectorAll(".editor-form,.inline-editor").forEach(sendPreview);});
+document.addEventListener("input",e=>{const form=e.target.closest("form");if(form&&!previewDock.hidden)sendPreview(form);});
+document.addEventListener("change",e=>{const form=e.target.closest("form");if(form&&!previewDock.hidden)sendPreview(form);});
+
 const setMessage=(id,msg,ok=false)=>{const el=$(id);el.textContent=msg;el.className="form-message"+(ok?" success":"");};
 const api=async(url,options={})=>{const r=await fetch(url,{...options,headers:{"Accept":"application/json","Content-Type":"application/json",...(options.headers||{})}});const d=await r.json();if(!r.ok)throw new Error(d.error||"Permintaan gagal.");return d;};
 const branchQuery=()=>selectedBranch?"?branch_id="+encodeURIComponent(selectedBranch):"";
