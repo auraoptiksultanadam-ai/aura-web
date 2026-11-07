@@ -27,7 +27,7 @@ async function checkName(name,ctx){
 }
 async function createBranchManager(username,password,branchId,brandName){
  const key=process.env.SUPABASE_SERVICE_ROLE_KEY;
- if(!key)throw fail("Secret SUPABASE_SERVICE_ROLE_KEY belum được cấu hình.",503);
+ if(!key)throw fail("Secret SUPABASE_SERVICE_ROLE_KEY belum dikonfigurasi.",503);
  const internalEmail=username+"@manager.aura.internal";
  const r=await fetch(SUPABASE_URL+"/auth/v1/admin/users",{method:"POST",headers:{apikey:key,Authorization:"Bearer "+key,"Content-Type":"application/json"},body:JSON.stringify({email:internalEmail,password,email_confirm:true,user_metadata:{username,brand_name:brandName}})});
  const data=await r.json().catch(()=>({}));
@@ -142,7 +142,6 @@ exports.handler=async event=>{
     if(installationId)repo.installation_id=installationId;
     await netlify("/sites/"+encodeURIComponent(site.id),{method:"PUT",body:JSON.stringify({repo})});
     await netlify("/sites/"+encodeURIComponent(site.id)+"/metadata",{method:"PUT",body:JSON.stringify({aura_branch_id:branch.id,aura_branch_slug:name,managed_by:"AURA WEBSITE MANAGER"})});
-    const origin=event.headers.origin||event.headers.Origin;
     const manager=await createBranchManager(managerUsername,managerPassword,branch.id,brandName);
     createdManagerUserId=manager.id;
     return response(201,{ok:true,item:branch,site:{id:site.id,name:site.name,hostname:name+".netlify.app",url:site.ssl_url||site.url,admin_url:site.admin_url},manager:{username:manager.username},message:"Cabang dan akun pengelola berhasil dibuat. Pengelola wajib mengganti password saat login pertama."},ctx);
