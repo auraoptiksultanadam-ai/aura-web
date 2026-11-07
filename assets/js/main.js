@@ -78,3 +78,34 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('scroll', updateActiveNav, { passive: true });
   updateActiveNav();
 });
+
+
+  // 3. Google rating: one endpoint feeds both rating placements.
+  const ratingNodes = document.querySelectorAll('[data-google-rating]');
+  const countNodes = document.querySelectorAll('[data-google-count]');
+  const googleLinks = document.querySelectorAll('[data-google-link]');
+  const ratingEndpoint = '/.netlify/functions/google-rating';
+
+  function showRatingUnavailable() {
+    ratingNodes.forEach(node => { node.textContent = '—'; });
+    countNodes.forEach(node => { node.textContent = 'Rating belum tersedia'; });
+  }
+
+  fetch(ratingEndpoint, { headers: { Accept: 'application/json' } })
+    .then(response => {
+      if (!response.ok) throw new Error('Google rating endpoint unavailable');
+      return response.json();
+    })
+    .then(data => {
+      if (typeof data.rating !== 'number' || typeof data.userRatingCount !== 'number') {
+        throw new Error('Google rating data incomplete');
+      }
+      const rating = data.rating.toFixed(1).replace('.', ',');
+      const count = new Intl.NumberFormat('id-ID').format(data.userRatingCount);
+      ratingNodes.forEach(node => { node.textContent = rating; });
+      countNodes.forEach(node => { node.textContent = count; });
+      if (data.googleMapsUri) {
+        googleLinks.forEach(link => { link.href = data.googleMapsUri; });
+      }
+    })
+    .catch(() => showRatingUnavailable());
