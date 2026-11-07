@@ -16,7 +16,7 @@ Development workspace for Aura Optikal's website manager.
 - Produk & Kategori: branch-scoped CRUD and image URL / upload.
 - Promosi: draft, published, archived, scheduling and CTA.
 - Galeri: image URL / upload, visibility and ordering.
-- Kelola Cabang (Owner only): branch profiles, hostnames/domains, and assignment of existing Supabase Auth users.
+- Kelola Cabang (Owner only): branch profiles, hostnames/domains, and branch provisioning, domains, and account access overview.
 
 ## Security
 
@@ -30,14 +30,12 @@ Development workspace for Aura Optikal's website manager.
 
 ## Account onboarding
 
-- Owner enters the new branch name, desired Netlify hostname, and branch manager email in one form.
-- The provisioning function invites the email through Supabase Auth Admin API and creates the `branch_users` membership with role `branch_manager` for that branch.
-- The invitation redirects to `/manager/accept-invite.html`, where the invited manager sets their own password, then logs in at `/manager/`.
-- The server-side Netlify Function requires `SUPABASE_SERVICE_ROLE_KEY` as a Netlify Functions secret. Never expose this key in browser code or commit it to GitHub.
-- In Supabase Authentication URL Configuration, allowlist this exact invite redirect URL while testing: `https://aura-manager-dev--aura-optikal.netlify.app/manager/accept-invite.html`.
-- Configure Supabase SMTP / custom email delivery before sending real invitations. The built-in email service may have sending limits and may not deliver to arbitrary recipients.
-- If an email already has a Supabase Auth account, the invite flow may reject it; use the existing-account assignment flow in Kelola Cabang instead.
-
+- Owner is the account with global access to all branches, domains, and website management.
+- The existing Sultan Adam account is the Master account for Sultan Adam. Its internal database role remains `branch_manager` so it cannot manage other branches.
+- Other branch managers are provisioned by Owner with a unique username and initial password when a new branch is created.
+- New branch manager accounts must change their initial password on first login.
+- Existing Owner and Sultan Adam credentials remain usable; email login is supported alongside username login.
+- Manager account usernames and password-change flags are stored in the private `manager_accounts` table. The service-role key is server-side only.
 ## Deployment
 
 Netlify branch deploys from `aura-manager-dev` are for testing only. Do not publish or merge this branch to production without explicit approval. Environment variables are configured as Netlify function secrets and must not be committed.
@@ -45,7 +43,7 @@ Netlify branch deploys from `aura-manager-dev` are for testing only. Do not publ
 
 ## Automatic branch provisioning
 
-- Owner creates a branch with only its display name and desired Netlify subdomain.
+- Owner creates a branch with its display name, desired Netlify subdomain, unique manager username, and initial password.
 - The manager checks the requested name against the Netlify account and existing Aura branch slugs.
 - Netlify creates a separate Site and links it to the public GitHub repository `auraoptiksultanadam-ai/aura-web`, using `aura-manager-dev` while this feature is under development.
 - The function configures site-scoped `SUPABASE_URL` and `SUPABASE_ANON_KEY` values through Netlify's environment-variable API before connecting the repository.
