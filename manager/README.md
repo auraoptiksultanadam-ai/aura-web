@@ -16,6 +16,7 @@ Development workspace for Aura Optikal's website manager.
 - Produk & Kategori: branch-scoped CRUD and image URL / upload.
 - Promosi: draft, published, archived, scheduling and CTA.
 - Galeri: image URL / upload, visibility and ordering.
+- Visual Editor: edit static website text, images and links directly in the page preview; add, hide, remove and reorder page sections; save drafts, publish, and restore a prior revision. Existing product, promotion, gallery and location modules remain authoritative for their dynamic data.
 - Kelola Cabang (Owner only): branch profiles, hostnames/domains, and branch provisioning, domains, and account access overview.
 
 ## Security
@@ -27,6 +28,8 @@ Development workspace for Aura Optikal's website manager.
 - Owner-only endpoints check the authenticated role server-side.
 - Storage upload uses the authenticated user token and the branch folder policy.
 - Public website data resolves the request hostname through active `branch_domains`.
+- Visual editor draft and revision tables are branch-scoped with RLS. Only published page snapshots are readable by the public site; drafts and revision history are not exposed to anonymous visitors.
+- Visual editor content accepts text and safe HTTPS/local asset URLs only; arbitrary HTML and script injection are not supported.
 
 ## Account onboarding
 
@@ -52,3 +55,13 @@ Netlify branch deploys from `aura-manager-dev` are for testing only. Do not publ
 - `NETLIFY_AUTH_TOKEN` is read only by the server-side Netlify Function. Never expose it in browser code, logs, or GitHub.
 - On the Free plan, environment-variable scopes are not granular; values are site-scoped and secret. Do not create or change shared account-level variables for branch sites.
 - New Sites created from the development branch are test deployments. They are not production-ready until the approved code is merged to `main` and the branch site's deploy branch is deliberately changed.
+
+## Visual Editor
+
+- Open `/manager/visual-editor.html` after signing in.
+- Select text or images directly in the website preview. Use Shift+click on a link to edit its destination.
+- Use the left panel to reorder, hide/show, or remove sections; add a basic text/banner/CTA/features section.
+- Use the right inspector to edit text, image URLs, upload replacement images, alt text, and link targets.
+- Save Draft stores changes privately. Publish writes the public snapshot for the selected branch. Restore copies a revision back into draft; it does not publish automatically.
+- The visual editor intentionally leaves dynamic catalog, gallery, promotion and location data to their existing manager modules to prevent conflicting sources of truth.
+- Current editor scope is the Home page (`page_key=home`). The website's original HTML/CSS remains the layout foundation; no free-form HTML/CSS editor is provided.
