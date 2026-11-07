@@ -1,0 +1,2 @@
+create index if not exists site_page_drafts_updated_by_idx on public.site_page_drafts(updated_by);
+create index if not exists site_page_revisions_created_by_idx on public.site_page_revisions(created_by);
