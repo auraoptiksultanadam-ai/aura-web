@@ -6,8 +6,8 @@ let role="",branches=[],selectedBranch="",profileLoaded=false,hoursLoaded=false,
 const profileForm=$("#profile-form"),hoursList=$("#hours-list");
 const previewDock=$("#preview-dock"),previewFrame=$("#website-preview");
 function sendPreview(form){if(!previewFrame?.contentWindow||!form)return;const values={};for(const [key,value] of new FormData(form).entries()){if(typeof value==="string")values[key]=value;}if(form.elements.is_visible)values.is_visible=form.elements.is_visible.checked;if(form.elements.is_active)values.is_active=form.elements.is_active.checked;previewFrame.contentWindow.postMessage({source:"aura-manager",type:"draft-preview",form:form.id,values},location.origin);}
-$("#toggle-preview")?.addEventListener("click",()=>{previewDock.hidden=!previewDock.hidden;if(!previewDock.hidden){previewFrame.src=previewFrame.src;setTimeout(()=>document.querySelectorAll(".editor-form,.inline-editor").forEach(sendPreview),500);}});
-$("#close-preview")?.addEventListener("click",()=>{previewDock.hidden=true;});
+$("#toggle-preview")?.addEventListener("click",()=>{previewDock.hidden=!previewDock.hidden;document.body.classList.toggle("preview-open",!previewDock.hidden);if(!previewDock.hidden){previewFrame.src=previewFrame.src;setTimeout(()=>document.querySelectorAll(".editor-form,.inline-editor").forEach(sendPreview),500);}});
+$("#close-preview")?.addEventListener("click",()=>{previewDock.hidden=true;document.body.classList.remove("preview-open");});
 $("#preview-desktop")?.addEventListener("click",()=>previewDock.classList.remove("mobile-preview"));
 $("#preview-mobile")?.addEventListener("click",()=>previewDock.classList.add("mobile-preview"));
 previewFrame?.addEventListener("load",()=>{document.querySelectorAll(".editor-form,.inline-editor").forEach(sendPreview);});
