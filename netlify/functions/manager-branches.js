@@ -89,7 +89,9 @@ exports.handler=async event=>{
    ]);
    const [branches,domains,users]=await Promise.all([br.json(),dr.json(),ur.json()]);
    if(!br.ok||!dr.ok||!ur.ok)throw fail("Gagal memuat data cabang.",502);
-   return response(200,{branches,domains,users},ctx);
+   let accounts=[];const serviceKey=process.env.SUPABASE_SERVICE_ROLE_KEY;if(serviceKey){const ar=await fetch(base()+"manager_accounts?select=user_id,username,must_change_password",{headers:{apikey:serviceKey,Authorization:"Bearer "+serviceKey}});if(ar.ok)accounts=await ar.json();}
+   const accountMap=new Map(accounts.map(a=>[a.user_id,a]));const enrichedUsers=users.map(u=>({...u,username:accountMap.get(u.user_id)?.username||null,must_change_password:accountMap.get(u.user_id)?.must_change_password??false}));
+   return response(200,{branches,domains,users:enrichedUsers},ctx);
   }
   if(!["POST","PATCH","DELETE"].includes(event.httpMethod))return response(405,{error:"Metode tidak diizinkan."},ctx);
   assertSameOrigin(event);
