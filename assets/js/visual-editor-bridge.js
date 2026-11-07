@@ -3,18 +3,18 @@ const editing=new URLSearchParams(location.search).has("aura_editor");
 const send=(type,payload={})=>window.parent.postMessage({source:"aura-visual-editor",type,...payload},location.origin);
 const main=document.querySelector("main")||document.body;
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-let content={version:1,elements:{},sections:[],customSections:[],removedSections:[]},selected=null;const originalSectionIds=[...document.querySelectorAll("main section[id]")].map(x=>x.id);
+let content={version:1,elements:{},sections:[],customSections:[],removedSections:[]},selected=null,textCounter=0,imageCounter=0,linkCounter=0;const originalSectionIds=[...document.querySelectorAll("main section[id]")].map(x=>x.id);
 function keyTextNodes(){
  let seq=0;
  const roots=[document.querySelector("header"),...document.querySelectorAll("main section"),document.querySelector("footer")].filter(Boolean);
  roots.forEach((root,ri)=>{const section=root.matches("section")?(root.id||"section-"+ri):(root.tagName.toLowerCase());
  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode(n){if(!n.nodeValue.trim())return NodeFilter.FILTER_REJECT;const p=n.parentElement;if(!p||p.closest("script,style,noscript,svg,.material-symbols-outlined,[data-aura-edit-key]"))return NodeFilter.FILTER_REJECT;return NodeFilter.FILTER_ACCEPT;}});
  const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
- nodes.forEach(n=>{const span=document.createElement("span");span.dataset.auraEditKey="text:"+section+":"+seq++;span.style.display="contents";n.parentNode.replaceChild(span,n);span.appendChild(n);});
+ nodes.forEach(n=>{const span=document.createElement("span");span.dataset.auraEditKey="text:"+section+":"+textCounter++;span.style.display="contents";n.parentNode.replaceChild(span,n);span.appendChild(n);});
  });
 }
-function keyImages(){let i=0;document.querySelectorAll("img").forEach(img=>{if(!img.dataset.auraEditKey)img.dataset.auraEditKey="image:"+(img.dataset.branchImage||img.closest("section")?.id||"global")+":"+(i++);});}
-function keyLinks(){let i=0;document.querySelectorAll("a").forEach(a=>{if(!a.dataset.auraLinkKey)a.dataset.auraLinkKey="link:"+(a.closest("section")?.id||"global")+":"+(i++);});}
+function keyImages(){document.querySelectorAll("img").forEach(img=>{if(!img.dataset.auraEditKey)img.dataset.auraEditKey="image:"+(img.dataset.branchImage||img.closest("section")?.id||"global")+":"+(imageCounter++);});}
+function keyLinks(){document.querySelectorAll("a").forEach(a=>{if(!a.dataset.auraLinkKey)a.dataset.auraLinkKey="link:"+(a.closest("section")?.id||"global")+":"+(linkCounter++);});}
 function sectionList(){return [...document.querySelectorAll("main section[id]")].map((s,i)=>({id:s.id,title:s.querySelector("h1,h2,h3")?.textContent?.trim().slice(0,70)||s.id,hidden:s.dataset.auraHidden==="true",order:i}));}
 function capture(){const elements={};document.querySelectorAll("[data-aura-edit-key]").forEach(el=>elements[el.dataset.auraEditKey]={text:el.textContent});document.querySelectorAll("img[data-aura-edit-key]").forEach(el=>elements[el.dataset.auraEditKey]={src:el.getAttribute("src")||"",alt:el.alt||""});document.querySelectorAll("a[data-aura-link-key]").forEach(el=>elements[el.dataset.auraLinkKey]={href:el.getAttribute("href")||""});content={version:1,elements,sections:sectionList(),customSections:[...document.querySelectorAll("[data-aura-custom-section]")].map(s=>({id:s.id,title:s.querySelector("h2")?.textContent||"Bagian baru",body:s.querySelector("p")?.textContent||"",kind:s.dataset.kind||"text",hidden:s.dataset.auraHidden==="true"})),removedSections:originalSectionIds.filter(id=>!document.getElementById(id))};if(editing){send("snapshot",{content});send("sections",{sections:sectionList()});}return content;}
 function apply(data){if(!data||data.version!==1)return;content=data;Object.entries(data.elements||{}).forEach(([key,v])=>{const el=document.querySelector('[data-aura-edit-key="'+CSS.escape(key)+'"],[data-aura-link-key="'+CSS.escape(key)+'"]');if(!el)return;if(Object.hasOwn(v,"text"))el.textContent=v.text;if(Object.hasOwn(v,"src")&&el.tagName==="IMG")el.src=v.src;if(Object.hasOwn(v,"alt")&&el.tagName==="IMG")el.alt=v.alt;if(Object.hasOwn(v,"href")&&el.tagName==="A")el.href=v.href;});
