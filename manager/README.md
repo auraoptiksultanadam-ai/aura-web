@@ -60,7 +60,7 @@ Netlify branch deploys from `aura-manager-dev` are for testing only. Do not publ
 
 - Open `/manager/visual-editor.html` after signing in.
 - Select text or images directly in the website preview. Use Shift+click on a link to edit its destination.
-- Use the left panel to reorder, hide/show, or remove sections; add a basic text/banner/CTA/features section.
+- Use the left panel to reorder, hide/show, or remove sections; add a basic text section.
 - Use the right inspector to edit text, image URLs, upload replacement images, alt text, and link targets.
 - Save Draft stores changes privately. Publish writes the public snapshot for the selected branch. Restore copies a revision back into draft; it does not publish automatically.
 - The visual editor intentionally leaves dynamic catalog, gallery, promotion and location data to their existing manager modules to prevent conflicting sources of truth.
