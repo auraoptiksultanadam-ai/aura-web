@@ -13,10 +13,10 @@ setText(document.querySelector("#beranda .inline-flex span:last-child"),s.hero_b
 setText(document.querySelector("#beranda h1 + p"),s.hero_description);
 setText(document.querySelector("#lokasi .font-body-md.text-on-surface.mt-1.font-medium"),b.address||"Alamat cabang belum diatur.");
 setText(document.querySelector("#lokasi .font-body-lg.text-body-lg.text-on-surface-variant.mt-2"),"Kami siap menyambut Anda di "+(b.city||"lokasi kami")+".");
-document.querySelectorAll("[data-branch-logo]").forEach(logo=>{if(b.logo_url){logo.src=b.logo_url;logo.alt="Logo "+(b.brand_name||"Toko");logo.hidden=false;}else{logo.hidden=true;}});
+document.querySelectorAll("[data-branch-logo]").forEach(logo=>{if(b.logo_url){logo.src=b.logo_url;logo.alt="Logo "+(b.brand_name||"Toko");}});
 const brandText=document.querySelector("header .flex.flex-col span:first-child");if(brandText&&b.brand_name)brandText.textContent=b.brand_name;
 const galleryByCategory=category=>(d.gallery||[]).find(g=>String(g.category||"").toLowerCase()===category&&g.image_url);
-document.querySelectorAll("[data-branch-image]").forEach(img=>{const item=galleryByCategory(img.dataset.branchImage);if(item){img.src=item.image_url;img.alt=item.title||("Foto "+item.category+" "+(b.brand_name||"cabang"));img.hidden=false;}else{img.hidden=true;}});
+document.querySelectorAll("[data-branch-image]").forEach(img=>{const item=galleryByCategory(img.dataset.branchImage);if(item){img.src=item.image_url;img.alt=item.title||("Foto "+item.category+" "+(b.brand_name||"cabang"));}});
 
 document.querySelectorAll('a[href^="https://wa.me/"]').forEach(a=>{const u=new URL(a.href);const msg=u.searchParams.get("text")||"Halo Aura Optikal, saya ingin bertanya.";if(phone){a.href=wa(phone,msg);a.removeAttribute("aria-disabled");}else{a.href="#";a.setAttribute("aria-disabled","true");a.title="Nomor WhatsApp cabang belum diatur.";}});
 const social=document.querySelectorAll('#lokasi a[href*="instagram.com"],#lokasi a[href*="tiktok.com"],#lokasi a[href^="tel:"]');social.forEach(a=>{if(a.href.includes("instagram.com")){a.href=s.instagram_url||"#";if(!s.instagram_url)a.setAttribute("aria-disabled","true");}if(a.href.includes("tiktok.com")){a.href=s.tiktok_url||"#";if(!s.tiktok_url)a.setAttribute("aria-disabled","true");}if(a.href.startsWith("tel:")){a.href=b.phone?"tel:"+b.phone.replace(/\s/g,""):"#";if(!b.phone)a.setAttribute("aria-disabled","true");}});
