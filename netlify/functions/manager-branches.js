@@ -18,12 +18,14 @@ function cleanName(value){
  return name;
 }
 async function checkName(name,ctx){
- const [remote,search,local]=await Promise.all([
+ const anchor=await netlify("/sites/aura-optikal.netlify.app");
+ const accountSlug=anchor.account_slug;
+ const [remote,teamSites,local]=await Promise.all([
   netlify("/sites?name="+encodeURIComponent(name)),
-  netlify("/sites?filter="+encodeURIComponent(name)),
+  accountSlug?netlify("/"+encodeURIComponent(accountSlug)+"/sites?name="+encodeURIComponent(name)):Promise.resolve([]),
   fetch(base()+"branches?select=id,slug,brand_name&slug=eq."+encodeURIComponent(name),{headers:ctx.headers}).then(r=>r.json())
  ]);
- const candidates=[...(Array.isArray(remote)?remote:[]),...(Array.isArray(search)?search:[])];
+ const candidates=[...(Array.isArray(remote)?remote:[]),...(Array.isArray(teamSites)?teamSites:[])];
  const taken=candidates.some(s=>String(s.name||"").toLowerCase()===name||String(s.custom_domain||"").toLowerCase()===name+".netlify.app"||String(s.ssl_url||"").toLowerCase().includes(name+".netlify.app"));
  return {available:!taken&&!local.length,hostname:name+".netlify.app",reason:taken?"Subdomain sudah terdaftar sebagai Site di Netlify. Gunakan nama lain atau periksa Site lama yang memakai nama ini.":local.length?"Nama sudah terdaftar sebagai cabang Aura.":"",note:"Netlify memeriksa keunikan subdomain secara global saat Site dibuat."};
 }
