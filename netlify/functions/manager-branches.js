@@ -29,6 +29,24 @@ async function checkName(name,ctx){
  const taken=candidates.some(s=>String(s.name||"").toLowerCase()===name||String(s.custom_domain||"").toLowerCase()===name+".netlify.app"||String(s.ssl_url||"").toLowerCase().includes(name+".netlify.app"));
  return {available:!taken&&!local.length,hostname:name+".netlify.app",reason:taken?"Subdomain sudah terdaftar sebagai Site di Netlify. Gunakan nama lain atau periksa Site lama yang memakai nama ini.":local.length?"Nama sudah terdaftar sebagai cabang Aura.":"",note:"Netlify memeriksa keunikan subdomain secara global saat Site dibuat."};
 }
+async function createNetlifySite(requestedName,ctx){
+ const baseName=requestedName;
+ let lastConflict=null;
+ for(let attempt=0;attempt<21;attempt++){
+  const candidate=attempt===0?baseName:baseName+"-aura"+(attempt===1?"":String(attempt));
+  if(candidate.length>63)continue;
+  const availability=await checkName(candidate,ctx);
+  if(!availability.available)continue;
+  try{
+   const site=await netlify("/"+encodeURIComponent((await netlify("/sites/aura-optikal.netlify.app")).account_slug)+"/sites",{method:"POST",body:JSON.stringify({name:candidate})});
+   return {site,name:candidate,autoAdjusted:attempt>0,requestedName:baseName};
+  }catch(error){
+   if(error.statusCode===422&&/subdomain|must be unique/i.test(error.message)){lastConflict=error;continue;}
+   throw error;
+  }
+ }
+ throw fail("Subdomain "+baseName+".netlify.app tidak tersedia. Sistem juga sudah mencoba 20 nama alternatif dengan akhiran -aura, tetapi semuanya tidak dapat digunakan. Masukkan nama URL lain lalu coba lagi.",422);
+}
 async function createBranchManager(username,password,branchId,brandName){
  const key=process.env.SUPABASE_SERVICE_ROLE_KEY;
  if(!key)throw fail("Secret SUPABASE_SERVICE_ROLE_KEY belum dikonfigurasi.",503);
@@ -116,7 +134,7 @@ exports.handler=async event=>{
    const brandName=String(body.brand_name||"").trim();
    const managerUsername=String(body.manager_username||"").trim().toLowerCase();
    const managerPassword=String(body.manager_password||"");
-   const name=cleanName(body.netlify_name||body.slug);
+   let name=cleanName(body.netlify_name||body.slug);
    if(!brandName)throw fail("Nama cabang wajib diisi.");
    if(brandName.length>120)throw fail("Nama cabang maksimal 120 karakter.");
    if(!/^[a-z0-9][a-z0-9._-]{2,31}$/.test(managerUsername))throw fail("Username pengelola harus 3–32 karakter dan hanya memakai huruf kecil, angka, titik, garis bawah, atau tanda hubung.");
@@ -152,7 +170,7 @@ exports.handler=async event=>{
     await netlify("/sites/"+encodeURIComponent(site.id)+"/metadata",{method:"PUT",body:JSON.stringify({aura_branch_id:branch.id,aura_branch_slug:name,managed_by:"AURA WEBSITE MANAGER"})});
     const manager=await createBranchManager(managerUsername,managerPassword,branch.id,brandName);
     createdManagerUserId=manager.id;
-    return response(201,{ok:true,item:branch,site:{id:site.id,name:site.name,hostname:name+".netlify.app",url:site.ssl_url||site.url,admin_url:site.admin_url},manager:{username:manager.username},message:"Cabang dan akun pengelola berhasil dibuat. Pengelola wajib mengganti password saat login pertama."},ctx);
+    return response(201,{ok:true,item:branch,site:{id:site.id,name:site.name,hostname:name+".netlify.app",url:site.ssl_url||site.url,admin_url:site.admin_url},manager:{username:manager.username},message:provisioned.autoAdjusted?"Nama URL yang diminta sudah digunakan, jadi sistem memilih URL alternatif yang tersedia. Pengelola wajib mengganti password saat login pertama.":"Cabang dan akun pengelola berhasil dibuat. Pengelola wajib mengganti password saat login pertama.",requested_hostname:provisioned.requestedName+".netlify.app",auto_adjusted:provisioned.autoAdjusted},ctx);
    }catch(error){
     if(createdManagerUserId&&process.env.SUPABASE_SERVICE_ROLE_KEY){try{const key=process.env.SUPABASE_SERVICE_ROLE_KEY;await fetch(SUPABASE_URL+"/auth/v1/admin/users/"+encodeURIComponent(createdManagerUserId),{method:"DELETE",headers:{apikey:key,Authorization:"Bearer "+key}});}catch{}}
     if(createdBranchId){
