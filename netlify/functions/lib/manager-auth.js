@@ -31,7 +31,7 @@ async function context(event){
  if(!mr.ok||!Array.isArray(members))throw Object.assign(new Error("Gagal memeriksa hak akses."),{statusCode:502});
  const member=members.find(x=>x.role==="owner"||x.role==="branch_manager");
  if(!member)throw Object.assign(new Error("Akun tidak memiliki akses aktif."),{statusCode:403});
- return {session,refreshed,member,headers};
+ return {session,refreshed,member,headers,user};
 }
 function response(statusCode,body,ctx){
  const extra={};
