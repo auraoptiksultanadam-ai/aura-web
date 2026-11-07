@@ -12,7 +12,8 @@ fetch(URL+"/rest/v1/operating_hours?select=day_of_week,open_time,close_time,is_c
 fetch(URL+"/rest/v1/product_categories?select=id,name,product_type,sort_order&branch_id=eq."+encodeURIComponent(id)+"&is_active=eq.true&order=sort_order.asc",{headers:h}),
 fetch(URL+"/rest/v1/products?select=id,category_id,product_type,name,brand,badge,description,image_url,wa_text,sort_order&branch_id=eq."+encodeURIComponent(id)+"&is_active=eq.true&order=sort_order.asc",{headers:h}),
 fetch(URL+"/rest/v1/store_galleries?select=id,title,description,image_url,category,sort_order&branch_id=eq."+encodeURIComponent(id)+"&is_visible=eq.true&order=sort_order.asc",{headers:h}),
-fetch(URL+"/rest/v1/promotions?select=id,category,title,description,image_url,cta_label,cta_link,status,starts_at,ends_at,sort_order&branch_id=eq."+encodeURIComponent(id)+"&status=eq.published&order=sort_order.asc",{headers:h}),\nfetch(URL+"/rest/v1/site_pages?select=page_key,title,published_content,published_at&branch_id=eq."+encodeURIComponent(id)+"&is_published=eq.true",{headers:h})
+fetch(URL+"/rest/v1/promotions?select=id,category,title,description,image_url,cta_label,cta_link,status,starts_at,ends_at,sort_order&branch_id=eq."+encodeURIComponent(id)+"&status=eq.published&order=sort_order.asc",{headers:h}),
+fetch(URL+"/rest/v1/site_pages?select=page_key,title,published_content,published_at&branch_id=eq."+encodeURIComponent(id)+"&is_published=eq.true",{headers:h})
 ]);
 const results=await Promise.all([br,sr,hr,cr,pr,gr,por,pageRes].map(x=>x.json()));
 if([br,sr,hr,cr,pr,gr,por,pageRes].some(x=>!x.ok))return json(502,{error:"Gagal memuat konten website."});
