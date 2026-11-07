@@ -1,5 +1,5 @@
 const URL=process.env.SUPABASE_URL,KEY=process.env.SUPABASE_ANON_KEY;
-const json=(statusCode,body)=>({statusCode,headers:{"Content-Type":"application/json","Cache-Control":"public, max-age=60, s-maxage=120","Access-Control-Allow-Origin":"*"},body:JSON.stringify(body)});
+const json=(statusCode,body)=>({statusCode,headers:{"Content-Type":"application/json","Cache-Control":"public, max-age=0, s-maxage=15, stale-while-revalidate=30","Access-Control-Allow-Origin":"*"},body:JSON.stringify(body)});
 exports.handler=async event=>{try{if(!URL||!KEY)return json(500,{error:"Public API belum dikonfigurasi."});
 const host=(event.headers.host||event.headers.Host||"").split(":")[0].toLowerCase();
 const h={apikey:KEY,Authorization:"Bearer "+KEY};
