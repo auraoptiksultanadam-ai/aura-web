@@ -9,7 +9,7 @@ exports.handler=async(event)=>{
   const email=String(input.email||"").trim(),password=String(input.password||"");
   if(!email||!password)return json(400,{error:"Email dan password wajib diisi."});
   try{
-    const auth=await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=password",{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_ANON_KEY},body:JSON.stringify({email,password})});
+    const lookup=await fetch(SUPABASE_URL+"/rest/v1/manager_accounts?select=user_id,username&username=eq."+encodeURIComponent(username),{headers:{apikey:adminKey,Authorization:"Bearer "+adminKey}});const accounts=await lookup.json();if(!lookup.ok||!accounts.length)return json(401,{error:"Username atau password tidak sesuai."});\n    const authUser=await fetch(SUPABASE_URL+"/auth/v1/admin/users/"+encodeURIComponent(accounts[0].user_id),{headers:{apikey:adminKey,Authorization:"Bearer "+adminKey}});const authData=await authUser.json();if(!authUser.ok||!authData.email)return json(401,{error:"Username atau password tidak sesuai."});\n    const auth=await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=password",{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_ANON_KEY},body:JSON.stringify({email:authData.email,password})});
     const session=await auth.json();
     if(!auth.ok||!session.access_token||!session.refresh_token)return json(401,{error:"Email atau password tidak sesuai."});
     const membership=await fetch(SUPABASE_URL+"/rest/v1/branch_users?select=role,branch_id,is_active&user_id=eq."+encodeURIComponent(session.user.id)+"&is_active=eq.true",{headers:{"apikey":SUPABASE_ANON_KEY,"Authorization":"Bearer "+session.access_token}});
