@@ -17,7 +17,14 @@ const logo=document.querySelector("header img");if(logo&&b.logo_url)logo.src=b.l
 document.querySelectorAll('a[href^="https://wa.me/"]').forEach(a=>{const u=new URL(a.href);const msg=u.searchParams.get("text")||"Halo Aura Optikal, saya ingin bertanya.";if(phone){a.href=wa(phone,msg);a.removeAttribute("aria-disabled");}else{a.href="#";a.setAttribute("aria-disabled","true");a.title="Nomor WhatsApp cabang belum diatur.";}});
 const social=document.querySelectorAll('#lokasi a[href*="instagram.com"],#lokasi a[href*="tiktok.com"],#lokasi a[href^="tel:"]');social.forEach(a=>{if(a.href.includes("instagram.com")){a.href=s.instagram_url||"#";if(!s.instagram_url)a.setAttribute("aria-disabled","true");}if(a.href.includes("tiktok.com")){a.href=s.tiktok_url||"#";if(!s.tiktok_url)a.setAttribute("aria-disabled","true");}if(a.href.startsWith("tel:")){a.href=b.phone?"tel:"+b.phone.replace(/\s/g,""):"#";if(!b.phone)a.setAttribute("aria-disabled","true");}});
 const maps=document.querySelector('#lokasi a[href*="maps.app.goo.gl"]');if(maps){maps.href=s.gmaps_url||"#";if(!s.gmaps_url)maps.setAttribute("aria-disabled","true");}
-const catalog=document.querySelectorAll('a[href*="script.google.com"]');catalog.forEach(a=>{a.href=s.softlens_catalog_url||"#";if(!s.softlens_catalog_url)a.setAttribute("aria-disabled","true");});
+const catalog=document.querySelectorAll("a[data-branch-catalog]");
+catalog.forEach(a=>{
+ const value=String(s.softlens_catalog_url||"").trim();
+ let valid=false;
+ try{const u=new URL(value);valid=u.protocol==="https:";}catch{}
+ if(valid){a.href=value;a.target="_blank";a.rel="noopener noreferrer";a.removeAttribute("aria-disabled");}
+ else{a.href="#";a.removeAttribute("target");a.setAttribute("aria-disabled","true");a.title="Katalog Softlens cabang ini belum diatur.";a.addEventListener("click",e=>e.preventDefault());}
+});
 if(s.meta_title)document.title=s.meta_title;if(s.meta_description){let m=document.querySelector('meta[name="description"]');if(!m){m=document.createElement("meta");m.name="description";document.head.append(m);}m.content=s.meta_description;}
 renderProducts(d.products||[],phone);renderGallery(d.gallery||[]);renderPromos(d.promotions||[]);renderHours(d.hours||[]);
 }catch(e){console.warn("Dynamic branch content unavailable; static website content remains visible.");}}
