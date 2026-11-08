@@ -12,7 +12,61 @@ else if(name==="catalog"){if(request.method==="GET"){const [categories,products]
 else if(name==="promotions"||name==="gallery"){const table=name==="promotions"?"promotions":"store_galleries";if(request.method==="GET")data={ [name]:await rest(ctx,table+"?select=*&"+base+"&order=sort_order.asc,created_at.desc"),branch_id:b};else{const id=q.get("id");if(request.method==="DELETE"){if(!id)throw bad("ID tidak ditemukan.");await rest(ctx,table+"?id=eq."+enc(id)+"&"+base,"DELETE",undefined,{Prefer:"return=minimal"});data={ok:true};}else{const keys=name==="promotions"?["category","title","description","image_url","cta_label","cta_link","status","starts_at","ends_at","sort_order"]:["title","description","image_url","category","sort_order","is_visible"];const item={branch_id:b,...pick(body,keys),updated_at:new Date().toISOString()};if(!String(item.title||item.image_url||"").trim())throw bad("Judul atau URL gambar wajib diisi.");if(name==="promotions"&&!["draft","published","archived"].includes(item.status||"draft"))throw bad("Status promosi tidak valid.");if(name==="gallery"){try{const u=new URL(item.image_url);if(!["https:","http:"].includes(u.protocol))throw 0;}catch{throw bad("URL gambar tidak valid.");}}const route=request.method==="PATCH"?(id?table+"?id=eq."+enc(id)+"&"+base:null):table;if(!route)throw bad("ID tidak ditemukan.");const rows=await rest(ctx,route,request.method,item,{Prefer:"return=representation"});data={ok:true,item:rows[0],message:"Data berhasil disimpan."};}}}
 else if(name==="upload"){if(request.method!=="POST")throw bad("Metode tidak diizinkan.",405);const mime=String(body.mime_type||"").toLowerCase(),filename=String(body.filename||"image").replace(/[^a-zA-Z0-9._-]/g,"_"),raw=String(body.base64||"").replace(/^data:[^,]+,/,"");if(!["image/jpeg","image/png","image/webp"].includes(mime)||!raw||raw.length>5592406)throw bad("Format gambar tidak didukung atau melebihi 4 MB.");const bytes=Uint8Array.from(atob(raw),c=>c.charCodeAt(0));if(bytes.length>4*1024*1024)throw bad("Ukuran gambar maksimal 4 MB.");const ext=mime==="image/jpeg"?"jpg":mime==="image/png"?"png":"webp",path=b+"/"+Date.now()+"-"+filename.replace(/\\.[^.]+$/,"")+"."+ext;const up=await fetch(ctx.c.url+"/storage/v1/object/branch-media/"+path.split("/").map(enc).join("/"),{method:"POST",headers:{apikey:ctx.c.anon,Authorization:"Bearer "+ctx.s.access_token,"content-type":mime,"x-upsert":"false"},body:bytes});const d=await up.json().catch(()=>({}));if(!up.ok)throw bad(d.message||"Gagal mengunggah gambar.");data={ok:true,path,public_url:ctx.c.url+"/storage/v1/object/public/branch-media/"+path.split("/").map(enc).join("/")};}
 else if(name==="site-pages"){const page=String(q.get("page")||"home").replace(/[^a-z0-9_-]/gi,"").slice(0,40)||"home";if(request.method==="GET"){const [draft,published,revisions]=await Promise.all([rest(ctx,"site_page_drafts?select=id,title,content,updated_at&"+base+"&page_key=eq."+enc(page)+"&limit=1"),rest(ctx,"site_pages?select=id,title,published_content,published_at,is_published&"+base+"&page_key=eq."+enc(page)+"&limit=1"),rest(ctx,"site_page_revisions?select=id,created_at&"+base+"&page_key=eq."+enc(page)+"&order=created_at.desc&limit=20")]);data={branch_id:b,page_key:page,draft:draft[0]||null,published:published[0]||null,revisions};}else if(request.method==="PUT"){const v=body.content;if(!v||v.version!==1||!v.elements||!Array.isArray(v.sections)||JSON.stringify(v).length>600000)throw bad("Struktur draft tidak valid.");for(const el of Object.values(v.elements)){if(el.src&&!/^(https:\/\/|\/?assets\/)/.test(el.src))throw bad("URL gambar tidak diizinkan.");if(el.href&&!/^(https:\/\/|mailto:|tel:|#|\/)/.test(el.href))throw bad("Tautan tidak diizinkan.");}data={ok:true,draft:(await rest(ctx,"site_page_drafts?on_conflict=branch_id,page_key","POST",{branch_id:b,page_key:page,title:String(body.title||"Beranda").slice(0,120),content:v,updated_by:ctx.user.id,updated_at:new Date().toISOString()},{Prefer:"resolution=merge-duplicates,return=representation"}))[0],message:"Draft berhasil disimpan."};}else if(request.method==="POST"&&body.action==="publish"){const drafts=await rest(ctx,"site_page_drafts?select=title,content&"+base+"&page_key=eq."+enc(page)+"&limit=1");if(!drafts.length)throw bad("Simpan draft sebelum memublikasikan.");const old=await rest(ctx,"site_pages?select=published_content&"+base+"&page_key=eq."+enc(page)+"&limit=1");if(old[0]?.published_content)await rest(ctx,"site_page_revisions","POST",{branch_id:b,page_key:page,content:old[0].published_content,created_by:ctx.user.id},{Prefer:"return=minimal"});const published={branch_id:b,page_key:page,title:drafts[0].title,published_content:drafts[0].content,is_published:true,published_at:new Date().toISOString(),updated_at:new Date().toISOString()};await rest(ctx,"site_pages?on_conflict=branch_id,page_key","POST",published,{Prefer:"resolution=merge-duplicates,return=representation"});await rest(ctx,"site_page_revisions","POST",{branch_id:b,page_key:page,content:drafts[0].content,created_by:ctx.user.id},{Prefer:"return=minimal"});data={ok:true,published_at:published.published_at,message:"Halaman berhasil dipublikasikan."};}else if(request.method==="POST"&&body.action==="restore"&&body.revision_id){const rev=await rest(ctx,"site_page_revisions?select=content&id=eq."+enc(body.revision_id)+"&"+base+"&page_key=eq."+enc(page)+"&limit=1");if(!rev.length)throw bad("Versi tidak ditemukan.",404);data={ok:true,draft:(await rest(ctx,"site_page_drafts?on_conflict=branch_id,page_key","POST",{branch_id:b,page_key:page,title:"Beranda",content:rev[0].content,updated_by:ctx.user.id,updated_at:new Date().toISOString()},{Prefer:"resolution=merge-duplicates,return=representation"}))[0]};}else throw bad("Metode atau aksi editor tidak diizinkan.",405);}
-else if(name==="branches"){if(ctx.member.role!=="owner")throw bad("Akses Owner diperlukan.",403);if(request.method==="GET"){data={branches:await rest(ctx,"branches?select=id,slug,brand_name,is_active&order=brand_name.asc"),domains:await rest(ctx,"branch_domains?select=id,branch_id,hostname,is_primary,is_active&order=hostname.asc"),users:await rest(ctx,"branch_users?select=id,user_id,branch_id,role,is_active&order=created_at.desc")};}else throw bad("Pembuatan akun dan perubahan domain cabang dinonaktifkan di preview sampai mendapat persetujuan khusus.",403);}
+else if(name==="branches"){
+ if(ctx.member.role!=="owner")throw bad("Akses Owner diperlukan.",403);
+ if(request.method==="GET"){
+  data={branches:await rest(ctx,"branches?select=id,slug,brand_name,is_active&order=brand_name.asc"),domains:await rest(ctx,"branch_domains?select=id,branch_id,hostname,is_primary,is_active&order=hostname.asc"),users:await rest(ctx,"branch_users?select=id,user_id,branch_id,role,is_active&order=created_at.desc")};
+ }else if(request.method==="PATCH"){
+  const id=String(q.get("id")||"");
+  const allowed={
+   "fabe5e2d-7134-409e-8722-b03ef8ada85e":{slug:"belitung",brand_name:"Aura Optikal Belitung"},
+   "0acdeb89-bf6f-4fee-859f-52df7d6d9a62":{slug:"moodies",brand_name:"Aura Optikal Moodies"},
+   "c094cbab-ab4e-4a98-bb76-477f4381717c":{slug:"banjarbaru",brand_name:"Aura Optikal Banjarbaru"},
+   "c56cf138-4a61-4843-a80a-57ec2c3b725e":{slug:"grand",brand_name:"Aura Optikal Grand"}
+  };
+  if(!Object.hasOwn(allowed,id))throw bad("Cabang tidak termasuk daftar yang disetujui.",403);
+  const changes=pick(body,["brand_name","slug","is_active"]);
+  if(!Object.keys(changes).length)throw bad("Tidak ada perubahan yang diminta.");
+  if(changes.slug!==undefined&&changes.slug!==allowed[id].slug)throw bad("Slug cabang hanya boleh menggunakan slug yang telah ditetapkan.");
+  if(changes.brand_name!==undefined&&changes.brand_name!==allowed[id].brand_name)throw bad("Nama cabang tidak sesuai pemetaan yang disetujui.");
+  if(changes.is_active!==undefined&&typeof changes.is_active!=="boolean")throw bad("Status aktif tidak valid.");
+  const rows=await rest(ctx,"branches?id=eq."+enc(id),"PATCH",changes,{Prefer:"return=representation"});
+  if(!rows?.length)throw bad("Cabang tidak ditemukan atau tidak dapat diubah.",404);
+  data={ok:true,branch:rows[0],message:"Data cabang berhasil diperbarui."};
+ }else if(request.method==="POST"&&q.get("action")==="provision"){
+  if(!ctx.c.service)throw bad("Provisioning belum dikonfigurasi di server preview.",503);
+  const id=String(body.branch_id||""),username=String(body.username||"").trim().toLowerCase();
+  const allowed={
+   "fabe5e2d-7134-409e-8722-b03ef8ada85e":"belitung",
+   "0acdeb89-bf6f-4fee-859f-52df7d6d9a62":"moodies",
+   "c094cbab-ab4e-4a98-bb76-477f4381717c":"banjarbaru",
+   "c56cf138-4a61-4843-a80a-57ec2c3b725e":"grand"
+  };
+  if(!Object.hasOwn(allowed,id))throw bad("Cabang tidak termasuk daftar yang disetujui.",403);
+  if(username!==allowed[id])throw bad("Username harus sesuai nama cabang: "+allowed[id]+".");
+  const existing=await fetch(ctx.c.url+"/rest/v1/manager_accounts?select=id&username=eq."+enc(username),{headers:{apikey:ctx.c.service,Authorization:"Bearer "+ctx.c.service}});
+  const existingRows=await existing.json().catch(()=>[]);
+  if(!existing.ok)throw bad("Gagal memeriksa username.",502);
+  if(existingRows.length)throw bad("Username sudah digunakan.",409);
+  const bytes=new Uint8Array(24);crypto.getRandomValues(bytes);
+  const alphabet="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%_-";
+  const password=Array.from(bytes,x=>alphabet[x%alphabet.length]).join("")+"aA7!";
+  const email=username+"@aura-manager.internal";
+  const created=await fetch(ctx.c.url+"/auth/v1/admin/users",{method:"POST",headers:{apikey:ctx.c.service,Authorization:"Bearer "+ctx.c.service,"content-type":"application/json"},body:JSON.stringify({email,password,email_confirm:true,user_metadata:{username}})});
+  const user=await created.json().catch(()=>({}));
+  if(!created.ok||!user.id)throw bad(user.msg||user.message||"Gagal membuat akun autentikasi.",502);
+  try{
+   const account=await fetch(ctx.c.url+"/rest/v1/manager_accounts",{method:"POST",headers:{apikey:ctx.c.service,Authorization:"Bearer "+ctx.c.service,"content-type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({user_id:user.id,username,must_change_password:true})});
+   if(!account.ok)throw new Error("Gagal menyimpan akun Manager.");
+   const membership=await fetch(ctx.c.url+"/rest/v1/branch_users",{method:"POST",headers:{apikey:ctx.c.service,Authorization:"Bearer "+ctx.c.service,"content-type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({user_id:user.id,branch_id:id,role:"branch_manager",is_active:true})});
+   if(!membership.ok)throw new Error("Gagal menghubungkan akun ke cabang.");
+  }catch(error){
+   await fetch(ctx.c.url+"/auth/v1/admin/users/"+encodeURIComponent(user.id),{method:"DELETE",headers:{apikey:ctx.c.service,Authorization:"Bearer "+ctx.c.service}});
+   throw bad(error.message,502);
+  }
+  data={ok:true,username,password,message:"Akun dibuat. Password hanya ditampilkan sekali; wajib diganti saat login pertama."};
+ }else throw bad("Metode tidak diizinkan.",405);
+}
 else if(name==="change-password"){if(request.method!=="POST")throw bad("Metode tidak diizinkan.",405);const password=String(body.new_password||body.password||"");if(password.length<8)throw bad("Password minimal 8 karakter.");const r=await fetch(ctx.c.url+"/auth/v1/user",{method:"PUT",headers:{apikey:ctx.c.anon,Authorization:"Bearer "+ctx.s.access_token,"content-type":"application/json"},body:JSON.stringify({password})});if(!r.ok)throw bad("Gagal memperbarui password.");if(ctx.c.service)await fetch(ctx.c.url+"/rest/v1/manager_accounts?user_id=eq."+enc(ctx.user.id),{method:"PATCH",headers:{apikey:ctx.c.service,Authorization:"Bearer "+ctx.c.service,"content-type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({must_change_password:false})});data={ok:true,message:"Password berhasil diperbarui."};}
 else throw bad("Endpoint tidak ditemukan.",404);
 return json(data,200,sessionHeaders(ctx));
