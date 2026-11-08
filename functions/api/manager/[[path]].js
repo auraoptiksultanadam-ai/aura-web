@@ -25,11 +25,9 @@ else if(name==="branches"){
    "c56cf138-4a61-4843-a80a-57ec2c3b725e":{slug:"grand",brand_name:"Aura Optikal Grand"}
   };
   if(!Object.hasOwn(allowed,id))throw bad("Cabang tidak termasuk daftar yang disetujui.",403);
-  const changes=pick(body,["brand_name","slug","is_active"]);
-  if(!Object.keys(changes).length)throw bad("Tidak ada perubahan yang diminta.");
-  if(changes.slug!==undefined&&changes.slug!==allowed[id].slug)throw bad("Slug cabang hanya boleh menggunakan slug yang telah ditetapkan.");
-  if(changes.brand_name!==undefined&&changes.brand_name!==allowed[id].brand_name)throw bad("Nama cabang tidak sesuai pemetaan yang disetujui.");
-  if(changes.is_active!==undefined&&typeof changes.is_active!=="boolean")throw bad("Status aktif tidak valid.");
+  // Canonical values are derived only from the server-side allowlist.
+  // Ignore client-supplied names/slugs to avoid stale UI payload mismatches.
+  const changes={...allowed[id],is_active:true};
   const rows=await rest(ctx,"branches?id=eq."+enc(id),"PATCH",changes,{Prefer:"return=representation"});
   if(!rows?.length)throw bad("Cabang tidak ditemukan atau tidak dapat diubah.",404);
   data={ok:true,branch:rows[0],message:"Data cabang berhasil diperbarui."};
