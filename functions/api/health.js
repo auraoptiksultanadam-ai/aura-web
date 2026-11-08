@@ -1,0 +1,2 @@
+import {json,cfg} from "../_lib/auth.js";
+export async function onRequestGet({env}){const c=cfg(env);return json({ok:true,service:"aura-website-manager-preview",supabase_configured:!!(c.url&&c.anon&&c.service),environment:"preview"})}

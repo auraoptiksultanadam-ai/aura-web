@@ -1,0 +1,2 @@
+import {json,clearCookie,cfg} from "../../_lib/auth.js";
+export async function onRequestPost({request,env}){const c=cfg(env);const raw=request.headers.get("cookie")||"",v=raw.split(";").map(x=>x.trim()).find(x=>x.startsWith("aura_manager_session="))?.slice(21);if(v&&c.url&&c.anon){try{const s=JSON.parse(atob(v.replace(/-/g,"+").replace(/_/g,"/")));if(s.access_token)await fetch(c.url+"/auth/v1/logout",{method:"POST",headers:{apikey:c.anon,Authorization:"Bearer "+s.access_token}})}catch{}}return json({ok:true},200,{"set-cookie":clearCookie})}
