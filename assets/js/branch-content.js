@@ -57,7 +57,7 @@ catalog.forEach(a=>{
  else{a.href="#";a.removeAttribute("target");a.setAttribute("aria-disabled","true");a.title="Katalog Softlens cabang ini belum diatur.";a.addEventListener("click",e=>e.preventDefault());}
 });
 if(s.meta_title)document.title=s.meta_title;if(s.meta_description){let m=document.querySelector('meta[name="description"]');if(!m){m=document.createElement("meta");m.name="description";document.head.append(m);}m.content=s.meta_description;}
-renderProducts(d.products||[],phone);renderGallery(d.gallery||[]);renderPromos(d.promotions||[]);renderHours(d.hours||[]);if(window.AuraPageContent){window.AuraPageContent.refresh(isVisualEditor?null:page);window.AuraPageContent.ready?.();}
+renderProducts(d.products||[],phone);renderGallery(d.gallery||[]);renderPromos(d.promotions||[]);renderHours(d.hours||[]);if(window.AuraPageContent){window.AuraPageContent.refresh(isVisualEditor?null:page);document.querySelectorAll('a[href*="wa.me/"]').forEach(a=>{try{const u=new URL(a.href);const msg=u.searchParams.get("text")||"Halo Aura Optikal, saya ingin bertanya.";if(phone){a.href=wa(phone,msg);a.removeAttribute("aria-disabled");}else{a.href="#";a.setAttribute("aria-disabled","true");}}catch{}});window.AuraPageContent.ready?.();}
 }catch(e){console.warn("Dynamic branch content unavailable; static website content remains visible.");}}
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
 })();
