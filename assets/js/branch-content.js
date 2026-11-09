@@ -45,8 +45,9 @@ const galleryByCategory=category=>(d.gallery||[]).find(g=>String(g.category||"")
 document.querySelectorAll("[data-branch-image]").forEach(img=>{const item=galleryByCategory(img.dataset.branchImage);if(item){img.src=item.image_url;img.alt=item.title||("Foto "+item.category+" "+(b.brand_name||"cabang"));}});
 
 document.querySelectorAll('a[href^="https://wa.me/"]').forEach(a=>{const u=new URL(a.href);const msg=u.searchParams.get("text")||"Halo Aura Optikal, saya ingin bertanya.";if(phone){a.href=wa(phone,msg);a.removeAttribute("aria-disabled");}else{a.href="#";a.setAttribute("aria-disabled","true");a.title="Nomor WhatsApp cabang belum diatur.";}});
-const social=document.querySelectorAll('#lokasi a[href*="instagram.com"],#lokasi a[href*="tiktok.com"],#lokasi a[href^="tel:"]');social.forEach(a=>{if(a.href.includes("instagram.com")){a.href=s.instagram_url||"#";if(!s.instagram_url)a.setAttribute("aria-disabled","true");}if(a.href.includes("tiktok.com")){a.href=s.tiktok_url||"#";if(!s.tiktok_url)a.setAttribute("aria-disabled","true");}if(a.href.startsWith("tel:")){a.href=b.phone?"tel:"+b.phone.replace(/\s/g,""):"#";if(!b.phone)a.setAttribute("aria-disabled","true");}});
-const maps=document.querySelector('#lokasi a[href*="maps.app.goo.gl"]');if(maps){maps.href=s.gmaps_url||"#";if(!s.gmaps_url)maps.setAttribute("aria-disabled","true");}
+const social=document.querySelectorAll('a[href*="instagram.com"],a[href*="tiktok.com"]');social.forEach(a=>{if(a.href.includes("instagram.com")){a.href=s.instagram_url||"#";if(!s.instagram_url)a.setAttribute("aria-disabled","true");else a.removeAttribute("aria-disabled");}if(a.href.includes("tiktok.com")){a.href=s.tiktok_url||"#";if(!s.tiktok_url)a.setAttribute("aria-disabled","true");else a.removeAttribute("aria-disabled");}});
+document.querySelectorAll('a[href^="tel:"]').forEach(a=>{a.href=b.phone?"tel:"+b.phone.replace(/\s/g,""):"#";if(!b.phone)a.setAttribute("aria-disabled","true");else a.removeAttribute("aria-disabled");});
+document.querySelectorAll('a[href*="maps.app.goo.gl"],a[href*="google.com/maps"]').forEach(a=>{a.href=s.gmaps_url||"#";if(!s.gmaps_url)a.setAttribute("aria-disabled","true");else a.removeAttribute("aria-disabled");});
 const catalog=document.querySelectorAll("a[data-branch-catalog]");
 catalog.forEach(a=>{
  const value=String(s.softlens_catalog_url||"").trim();
