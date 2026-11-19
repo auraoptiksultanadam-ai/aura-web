@@ -1,8 +1,8 @@
 (function(){
 const fields=['heroLead','heroAccent','heroDescription','storeAddress','storeArea','aboutDescription'];
 function apply(data){fields.forEach(k=>{const el=document.querySelector('[data-edit-key="'+k+'"]');if(el&&typeof data[k]==='string')el.textContent=data[k]});if(data.seoTitle)document.title=data.seoTitle;let m=document.querySelector('meta[name="description"]');if(!m&&data.seoDescription){m=document.createElement('meta');m.name='description';document.head.appendChild(m)}if(m&&data.seoDescription)m.content=data.seoDescription}
-const preview=new URLSearchParams(location.search).has('localPreview');
+const preview=new URLSearchParams(location.search).has('localPreview');let visualEnabled=false;
 if(location.hostname==='localhost'||location.hostname==='127.0.0.1')fetch('/__local/api/content').then(r=>r.ok?r.json():null).then(d=>{if(d&&d.content)apply(d.content)}).catch(()=>{});
-if(preview){const css=document.createElement('style');css.textContent='[data-edit-key]{cursor:pointer;outline:1px dashed transparent;outline-offset:4px}[data-edit-key]:hover{outline:2px dashed #1682d4!important;background:rgba(22,130,212,.06)}';document.head.appendChild(css);document.addEventListener('click',e=>{const el=e.target.closest('[data-edit-key]');if(!el)return;e.preventDefault();e.stopPropagation();parent.postMessage({type:'AURA_LOCAL_SELECT',key:el.dataset.editKey},location.origin)},true)}
-addEventListener('message',e=>{if(e.origin===location.origin&&e.data&&e.data.type==='AURA_LOCAL_UPDATE')apply(e.data.content||{})});
+if(preview){const css=document.createElement('style');css.textContent='[data-edit-key]{cursor:pointer;outline:1px dashed transparent;outline-offset:4px}[data-edit-key]:hover{outline:2px dashed #1682d4!important;background:rgba(22,130,212,.06)}';document.head.appendChild(css);document.addEventListener('click',e=>{if(!visualEnabled)return;const el=e.target.closest('[data-edit-key]');if(!el)return;e.preventDefault();e.stopPropagation();parent.postMessage({type:'AURA_LOCAL_SELECT',key:el.dataset.editKey},location.origin)},true)}
+addEventListener('message',e=>{if(e.origin!==location.origin||!e.data)return;if(e.data.type==='AURA_LOCAL_UPDATE')apply(e.data.content||{});if(e.data.type==='AURA_LOCAL_VISUAL')visualEnabled=!!e.data.enabled});
 })();
