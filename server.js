@@ -17,7 +17,8 @@ const server=http.createServer(async(req,res)=>{
   return send(res,404,{error:'Endpoint tidak ditemukan'});
  }catch(e){return send(res,400,{error:e.message||'Terjadi kesalahan'})}}
  let pathname=decodeURIComponent(url.pathname);if(pathname==='/')pathname='/index.html';
- const target=path.resolve(ROOT,'.'+pathname);if(!target.startsWith(ROOT+path.sep))return send(res,403,'Forbidden','text/plain; charset=utf-8');
- fs.stat(target,(err,st)=>{if(err||!st.isFile())return send(res,404,'File tidak ditemukan','text/plain; charset=utf-8');res.writeHead(200,{'Content-Type':MIME[path.extname(target).toLowerCase()]||'application/octet-stream','X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin'});fs.createReadStream(target).pipe(res)});
+ let target=path.resolve(ROOT,'.'+pathname);if(!target.startsWith(ROOT+path.sep))return send(res,403,'Forbidden','text/plain; charset=utf-8');
+ fs.stat(target,(err,st)=>{if(!err&&st.isDirectory()){target=path.join(target,'index.html');if(!target.startsWith(ROOT+path.sep))return send(res,403,'Forbidden','text/plain; charset=utf-8');return fs.stat(target,(e,file)=>serveFile(e,file,target,res));}serveFile(err,st,target,res)});
+ function serveFile(err,st,file,res){if(err||!st||!st.isFile())return send(res,404,'File tidak ditemukan','text/plain; charset=utf-8');res.writeHead(200,{'Content-Type':MIME[path.extname(file).toLowerCase()]||'application/octet-stream','X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin'});fs.createReadStream(file).pipe(res)}
 });
 server.listen(PORT,HOST,()=>{process.stdout.write('\nAURA WEB CONTROL CENTER siap.\nWebsite: http://'+HOST+':'+PORT+'/\nDashboard: http://'+HOST+':'+PORT+'/admin/\nHanya komputer ini yang dapat mengakses. Tekan Ctrl+C untuk berhenti.\n\n')});
