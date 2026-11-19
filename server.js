@@ -1,7 +1,8 @@
 // AURA WEB CONTROL CENTER — local-only Node.js server
 const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const ROOT=__dirname,HOST='127.0.0.1',PORT=Number(process.env.PORT||3000);
-const BASE=path.join(ROOT,'content','site.json'),DRAFT=path.join(ROOT,'content','local-draft.json'),UPLOADS=path.join(ROOT,'assets','images','uploads');\nif(!fs.existsSync(UPLOADS))fs.mkdirSync(UPLOADS,{recursive:true});
+const BASE=path.join(ROOT,'content','site.json'),DRAFT=path.join(ROOT,'content','local-draft.json'),UPLOADS=path.join(ROOT,'assets','images','uploads');
+if(!fs.existsSync(UPLOADS))fs.mkdirSync(UPLOADS,{recursive:true});
 const MIME={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.woff2':'font/woff2','.ico':'image/x-icon'};
 const read=f=>JSON.parse(fs.readFileSync(f,'utf8'));
 function send(res,status,data,type='application/json; charset=utf-8'){res.writeHead(status,{'Content-Type':type,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(type.startsWith('application/json')?JSON.stringify(data):data)}
