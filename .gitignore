@@ -17,3 +17,7 @@ ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 .DS_Store
+
+# Local-only working draft (keep out of Git commits)
+content/local-draft.json
+content/*.tmp
