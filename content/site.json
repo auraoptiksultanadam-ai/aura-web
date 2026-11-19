@@ -108,6 +108,44 @@
   "copy_099": "0823-5192-8859",
   "copy_100": "© 2015 Aura Optikal Banjarmasin. Seluruh hak cipta dilindungi undang-undang.",
   "copy_101": "Kacamata Berkualitas • Refraksi Akurat • Garansi Lensa",
-  "gallerySlots": {},
-  "galleryItems": []
+  "gallerySlots": {
+    "galleryMain": "assets/images/store/showroom-interior.jpg",
+    "galleryTitanium": "assets/images/products/frame-prestige-titanium-wood.jpg",
+    "galleryCatEye": "assets/images/products/frame-verylux-cateye-gradient.jpg",
+    "galleryGNA": "assets/images/products/frame-gna-smoky-square.jpg",
+    "galleryOlive": "assets/images/products/frame-prestige-olive-green.jpg"
+  },
+  "galleryItems": [],
+  "promos": [
+    {
+      "id": "promo-1",
+      "badge": "Promo Aktif",
+      "title": "Promo Spesial di Aura Optikal",
+      "description": "Dapatkan penawaran menarik untuk paket bundling frame + lensa pilihan langsung di toko Aura Optikal Jl. Sultan Adam.",
+      "footer": "Kunjungi Aura Optikal",
+      "linkText": "Tanya Promo →",
+      "linkUrl": "https://wa.me/6282351928859?text=Halo%20Aura%20Optikal,%20saya%20ingin%20tanya%20promo%20paket%20kacamata%20terkini",
+      "icon": "local_offer"
+    },
+    {
+      "id": "promo-2",
+      "badge": "Tips Edukasi",
+      "title": "Tips Merawat Kacamata",
+      "description": "Hindari mengelap kacamata dengan baju kering karena serat kain kasar dapat menggores coating. Gunakan cairan khusus pembersih lensa dan kain microfiber bersih.",
+      "footer": "Kain Microfiber Tersedia di Toko",
+      "linkText": "",
+      "linkUrl": "",
+      "icon": "lightbulb"
+    },
+    {
+      "id": "promo-3",
+      "badge": "Kesehatan Mata",
+      "title": "Pengingat Cek Mata Berkala",
+      "description": "Disarankan untuk memeriksa kembali kenyamanan penglihatan setiap 6 hingga 12 bulan sekali untuk mengantisipasi perubahan ukuran minus atau silinder.",
+      "footer": "Pemeriksaan Refraksi di Toko",
+      "linkText": "Jadwalkan Cek →",
+      "linkUrl": "https://wa.me/6282351928859?text=Halo%20Aura%20Optikal,%20saya%20ingin%20jadwalkan%20cek%20mata%20rutin",
+      "icon": "calendar_month"
+    }
+  ]
 }
