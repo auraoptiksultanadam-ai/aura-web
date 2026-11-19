@@ -41,15 +41,15 @@ function preview(){const a=$('[data-field="brand.heroLead"]')?.value??data.brand
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function collect(){document.querySelectorAll('[data-field]').forEach(el=>setPath(data,el.dataset.field,el.value.trim()))}
 async function api(path,body){const r=await fetch(API+path,{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined,credentials:'same-origin'});const j=await r.json().catch(()=>({error:'Respons server tidak valid'}));if(!r.ok)throw Error(j.error||'Permintaan gagal');return j}
-async function load(){data=(await api('/content')).content;fill()}
+async function load(){data=(await api('/content')).content;if(!data)throw Error('Konten belum tersedia di repository');const draft=localStorage.getItem('aura-control-draft');if(draft){try{data=JSON.parse(draft)}catch(e){localStorage.removeItem('aura-control-draft')}}fill()}
 async function login(){try{await api('/login',{password:$('#password').value});$('#login').classList.add('hidden');$('#app').classList.remove('hidden');$('#logout').classList.remove('hidden');await load()}catch(e){$('#loginStatus').textContent=e.message}}
-async function save(){collect();try{await api('/content',{content:data});dirty=false;setStatus('Tersimpan di server');$('#publishStatus').textContent='Konten tersimpan. Klik Publikasikan untuk mengirim ke GitHub.'}catch(e){setStatus('Gagal menyimpan: '+e.message)}}
-async function publish(){collect();try{const r=await api('/publish',{content:data});dirty=false;setStatus('Berhasil dipublikasikan');$('#publishStatus').textContent=r.message||'Commit GitHub berhasil dibuat.'}catch(e){$('#publishStatus').textContent='Gagal: '+e.message}}
+async function save(){collect();try{localStorage.setItem('aura-control-draft',JSON.stringify(data));dirty=false;setStatus('Draft tersimpan di browser ini');$('#publishStatus').textContent='Draft tersimpan di browser ini. Klik Publikasikan untuk mengirim perubahan ke GitHub.'}catch(e){setStatus('Gagal menyimpan draft: '+e.message)}}
+async function publish(){collect();try{const r=await api('/publish',{content:data});dirty=false;localStorage.removeItem('aura-control-draft');setStatus('Berhasil dipublikasikan');$('#publishStatus').textContent=r.message||'Commit GitHub berhasil dibuat.'}catch(e){$('#publishStatus').textContent='Gagal: '+e.message}}
 $('#loginBtn').onclick=login;$('#password').addEventListener('keydown',e=>{if(e.key==='Enter')login()});
 $('#logout').onclick=async()=>{await api('/logout',{}).catch(()=>{});location.reload()};
 document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>tab(b.dataset.tab));document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>tab(b.dataset.go));
 function tab(name){document.querySelectorAll('.tab').forEach(x=>x.classList.add('hidden'));$('#tab-'+name).classList.remove('hidden');document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));$('#pageTitle').textContent=({home:'Ringkasan Website',brand:'Konten & Beranda',contact:'Kontak & Lokasi',seo:'SEO Website',publish:'Publikasi'})[name]}
 document.querySelectorAll('[data-field]').forEach(el=>el.addEventListener('input',()=>{dirty=true;setStatus('Ada perubahan belum disimpan');preview()}));
 $('#previewBtn').onclick=preview;$('#saveBrand').onclick=save;$('#saveContact').onclick=save;$('#saveSeo').onclick=save;$('#publishBtn').onclick=publish;$('#reloadBtn').onclick=()=>load().catch(e=>$('#publishStatus').textContent=e.message);
-api('/session').then(()=>loginComplete()).catch(()=>{});function loginComplete(){login().catch(()=>{})}
+api('/session').then(async()=>{ $('#login').classList.add('hidden');$('#app').classList.remove('hidden');$('#logout').classList.remove('hidden');await load(); }).catch(()=>{});
 </script></body></html>
